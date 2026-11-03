@@ -1,0 +1,9 @@
+"number","name","category","address","website","osm_id","location_note","longitude","latitude"
+1,"The York","Contemporary American + raw bar","247 W. Fayette St.","https://yorkcny.com/contact","2277759933","OSM point for the verified street address; old tenant name bc Restaurant in OSM",-76.1549989,43.0486083
+2,"Lemon Grass","Pacific Rim Thai","113 Walton St.","https://www.lemongrasscny.com/contact","8787550721","Nominatim address point for verified current address",-76.1541252,43.0478348
+3,"Dinosaur Bar-B-Que","Slow-smoked barbecue","246 W. Willow St.","https://dinosaurbarbque.com/bbq-in-syracuse-ny","1694014652","OpenStreetMap restaurant point",-76.1546779,43.0525611
+4,"Pastabilities","Pasta + spicy tomato oil","311 S. Franklin St.","https://www.pastabilities.com/contact","379522070","OpenStreetMap restaurant point",-76.155389,43.0483095
+5,"Apizza Regionale","Wood-fired pizza","260 W. Genesee St.","https://www.apizzaregionale.com/","11334835811","OpenStreetMap restaurant point",-76.1547657,43.052183
+6,"Francesca's Cucina","Italian + garden patio","545 N. Salina St.","https://francescas-cucina.com/contact","8787513982","Nominatim address point for verified street address",-76.1522354,43.0585314
+7,"Eden","Seasonal, wood-fired cooking","118 E. Genesee St.","https://www.edencny.com/","7390544363","OpenStreetMap restaurant point",-76.1515344,43.0502476
+8,"Phoebe's","American + coffee lounge","900 E. Genesee St.","https://phoebessyracuse.com/faq","2271930665","OpenStreetMap restaurant point",-76.1376206,43.0466867

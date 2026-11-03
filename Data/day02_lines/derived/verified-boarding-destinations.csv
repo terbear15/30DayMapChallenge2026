@@ -1,0 +1,19 @@
+stop_id,route_id,direction_id,letter,trip_headsign
+21354,21,0,A,Columbus-Dock
+21360,21,1,B,69th St Transit Center
+21443,30,0,D,Amtrak-30th Street Station
+21443,42,0,D,2nd-Spruce
+21443,42,0,D,5th-Walnut
+21443,42,0,D,10th-Chestnut
+21443,49,1,D,33rd-Dauphin
+21443,LUCYGR,0,D,Green Loop
+21447,31,0,E,City Hall
+21449,30,1,C,69th St Transit Center
+21449,42,1,C,61st-Pine
+21449,42,1,C,Wycombe
+21449,49,0,C,40th-Baltimore
+21449,LUCYGO,0,C,Gold Loop
+22233,40,0,G,2nd-Lombard
+30643,40,1,H,Conshohocken-Monument
+30643,40,1,H,50th-Parkside
+573,31,1,F,76th-City

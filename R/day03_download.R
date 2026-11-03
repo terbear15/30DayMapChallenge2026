@@ -1,0 +1,21 @@
+library(httr2)
+library(jsonlite)
+dir.create("Data/day03_polygons",showWarnings=FALSE)
+base<-"https://services.arcgis.com/fLeGjb7u4uXqeF9q/arcgis/rest/services/Parks/FeatureServer"
+fetch<-function(url,path){if(!file.exists(path)){request(url)|>req_timeout(120)|>req_perform(path=path)};invisible(NULL)}
+fetch(paste0(base,"?f=pjson"),"Data/day03_polygons/service.json")
+meta<-fromJSON("Data/day03_polygons/service.json")
+print(meta$layers)
+layer<-meta$layers$id[1]
+fetch(paste0(base,"/",layer,"?f=pjson"),"Data/day03_polygons/layer.json")
+fetch(paste0(base,"/",layer,"/query?where=1%3D1&outFields=*&outSR=4326&f=geojson"),"Data/day03_polygons/parks.geojson")
+fetch(paste0(base,"/",layer,"/query?where=1%3D1&returnCountOnly=true&f=json"),"Data/day03_polygons/feature-count.json")
+fetch("https://services.arcgis.com/fLeGjb7u4uXqeF9q/arcgis/rest/services/City_Limits/FeatureServer/0/query?where=1%3D1&outFields=*&outSR=4326&f=geojson","Data/day03_polygons/philadelphia.geojson")
+river_base<-"https://services.arcgis.com/fLeGjb7u4uXqeF9q/ArcGIS/rest/services/Hydrographic_Features_Poly/FeatureServer/1"
+fetch(paste0(river_base,"?f=pjson"),"Data/day03_polygons/river-layer.json")
+river_query<-paste0(river_base,"/query?where=",URLencode("creek_name LIKE '%Schuylkill%'",reserved=TRUE),"&outFields=*&outSR=4326&f=geojson")
+fetch(river_query,"Data/day03_polygons/schuylkill.geojson")
+p<-sf::st_read("Data/day03_polygons/parks.geojson",quiet=TRUE)
+print(names(p));print(head(sf::st_drop_geometry(p),10))
+cat("Features:",nrow(p),"\n")
+stopifnot(nrow(p)==fromJSON("Data/day03_polygons/feature-count.json")$count)

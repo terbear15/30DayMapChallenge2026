@@ -1,0 +1,94 @@
+{
+  "247 West Fayette Street, Syracuse, NY": [
+    {
+      "place_id": 351552942,
+      "licence": "Data © OpenStreetMap contributors, ODbL 1.0. http://osm.org/copyright",
+      "osm_type": "node",
+      "osm_id": 2277759933,
+      "lat": "43.0486083",
+      "lon": "-76.1549989",
+      "category": "amenity",
+      "type": "restaurant",
+      "place_rank": 30,
+      "importance": 0.0001,
+      "addresstype": "amenity",
+      "name": "bc Restaurant",
+      "display_name": "bc Restaurant, 247, West Fayette Street, Armory Square, City of Syracuse, Onondaga County, New York, 13202, United States",
+      "boundingbox": [
+        "43.0485583",
+        "43.0486583",
+        "-76.1550489",
+        "-76.1549489"
+      ]
+    }
+  ],
+  "113 Walton Street, Syracuse, NY": [
+    {
+      "place_id": 353033107,
+      "licence": "Data © OpenStreetMap contributors, ODbL 1.0. http://osm.org/copyright",
+      "osm_type": "node",
+      "osm_id": 8787550721,
+      "lat": "43.0478348",
+      "lon": "-76.1541252",
+      "category": "place",
+      "type": "house",
+      "place_rank": 30,
+      "importance": 0.0001,
+      "addresstype": "place",
+      "name": "",
+      "display_name": "113, Walton Street, Armory Square, City of Syracuse, Onondaga County, New York, 13202, United States",
+      "boundingbox": [
+        "43.0477848",
+        "43.0478848",
+        "-76.1541752",
+        "-76.1540752"
+      ]
+    }
+  ],
+  "118 East Genesee Street, Syracuse, NY": [
+    {
+      "place_id": 353828806,
+      "licence": "Data © OpenStreetMap contributors, ODbL 1.0. http://osm.org/copyright",
+      "osm_type": "node",
+      "osm_id": 7390544363,
+      "lat": "43.0502476",
+      "lon": "-76.1515344",
+      "category": "amenity",
+      "type": "restaurant",
+      "place_rank": 30,
+      "importance": 0.0001,
+      "addresstype": "amenity",
+      "name": "Eden",
+      "display_name": "Eden, 118, East Genesee Street, Downtown, City of Syracuse, Onondaga County, New York, 13202, United States",
+      "boundingbox": [
+        "43.0501976",
+        "43.0502976",
+        "-76.1515844",
+        "-76.1514844"
+      ]
+    }
+  ],
+  "545 North Salina Street, Syracuse, NY": [
+    {
+      "place_id": 353862880,
+      "licence": "Data © OpenStreetMap contributors, ODbL 1.0. http://osm.org/copyright",
+      "osm_type": "node",
+      "osm_id": 8787513982,
+      "lat": "43.0585314",
+      "lon": "-76.1522354",
+      "category": "place",
+      "type": "house",
+      "place_rank": 30,
+      "importance": 0.0001,
+      "addresstype": "place",
+      "name": "",
+      "display_name": "545, North Salina Street, City of Syracuse, Onondaga County, New York, 13208, United States",
+      "boundingbox": [
+        "43.0584814",
+        "43.0585814",
+        "-76.1522854",
+        "-76.1521854"
+      ]
+    }
+  ]
+}

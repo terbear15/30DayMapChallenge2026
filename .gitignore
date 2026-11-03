@@ -1,0 +1,14 @@
+.Rhistory
+.RData
+.Ruserdata
+.Rproj.user/
+.DS_Store
+Thumbs.db
+*.zip
+**/session-info.txt
+**/validation.txt
+**/processing-log.txt
+**/qa-results.txt
+Data/day01_points/osm.json
+Data/day02_lines/bus/
+Data/day02_lines/gtfs/
