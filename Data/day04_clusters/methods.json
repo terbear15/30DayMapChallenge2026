@@ -1,0 +1,17 @@
+{
+  "source": "OpenStreetMap amenity=cafe",
+  "osm_timestamp": "2026-11-04T01:22:40Z",
+  "scope": "Manhattan island: largest land polygon in NYC DCP Manhattan borough boundary",
+  "crs": "EPSG:26918",
+  "radius_m": 140,
+  "min_points": 5,
+  "raw_island_records": 1276,
+  "repeated_osm_ids_removed": 0,
+  "likely_duplicate_locations_removed": 5,
+  "final_locations": 1271,
+  "clusters": 58,
+  "clustered_locations": 812,
+  "outside_clusters": 459,
+  "close_up_magnification": [2.65, 2.49, 2.98],
+  "status": "Geometry, duplicate IDs, core-neighborhood thresholds, image dimensions, and close-up magnification checked."
+}

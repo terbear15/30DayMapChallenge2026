@@ -38,3 +38,17 @@ The data includes parks, playgrounds, recreation sites, and some other PPR prope
 `park-sizes.csv` records area after clipping to the city boundary. Classes are under 10 acres, 10 to under 100 acres, and 100 acres or more. Multipart sites are measured as one source record. These are size categories, not park quality, access, or tree-cover categories.
 
 The Schuylkill polygons come from the Water Department's [Hydrology dataset](https://opendataphilly.org/datasets/hydrology/). Water geometry extends up to 1.5 km beyond the city boundary for a soft fade; park geometry remains city-clipped. The opacity gradient is decorative.
+
+## Day 04 — Manhattan café clusters
+
+`day04_clusters/cafes.json` caches OpenStreetMap features tagged `amenity=cafe`, queried with Overpass. This can include tea shops and bakery cafés as well as coffee shops; coffee-selling venues without that tag are omitted. Data is © OpenStreetMap contributors under the [ODbL](https://www.openstreetmap.org/copyright). The source timestamp is November 4, 2026 at 01:22 UTC, corresponding to the evening of November 3 in New York.
+
+`manhattan-borough.geojson` is the Manhattan feature from [NYC DCP's borough boundaries](https://data.cityofnewyork.us/City-Government/Borough-Boundaries/gthc-hcne). The renderer uses its largest land polygon: Manhattan island, excluding Roosevelt Island, Governors Island, Marble Hill, and other detached borough territory. Geometry and café locations are projected to NAD83 / UTM zone 18N (EPSG:26918) for distance calculations.
+
+The source contained 1,276 mapped café records on the island. A deterministic review removed five likely duplicate representations: matching normalized names within 25 metres. Unnamed venues and different names were retained. This is a heuristic, not proof of business identity; the removed IDs and distances are preserved in `duplicate-review.csv`. OSM object IDs are checked for duplicates separately.
+
+The resulting 1,271 locations are clustered with DBSCAN, using a 140-metre neighborhood and minPts=5, including the core café itself. A core café has at least five locations in its neighborhood; connected core neighborhoods form groups, and neighboring border cafés join them. A chain of neighborhoods can extend much farther than 140 metres. Shared border points are assigned deterministically, so an assigned group can contain fewer than five members even though it has a qualifying core neighborhood. The result is 58 groups, with 812 locations assigned to clusters and 459 outside them. `sensitivity.csv` records alternative 100m and 180m settings; the parameter affects the groups and is exploratory.
+
+Terracotta denotes cluster membership throughout the figure, without implying cuisine, ratings, price, brand, or popularity. Gray indicates cafés outside the selected clustering definition. Light buffered convex envelopes illustrate groups; they are not neighborhood boundaries, walking catchments, or observed areas of continuous café activity. All three detail panels use the same classifications as the island overview, with geographic enlargement of approximately 2.5–3 times. Missing or sparse points may reflect uneven OSM mapping, and the figure is not evidence that an area has no cafés.
+
+`cafes-clustered.csv` contains the final records and group IDs. `methods.json` contains counts, scope, source timestamp, parameters, and validation status. The daily script renders offline from these cached source files. `R/day04_download.R` can fetch missing sources; a fresh download will represent a different snapshot.

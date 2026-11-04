@@ -9,6 +9,7 @@ Maps by **Terry Boxuan Xu** for the [2026 #30DayMapChallenge](https://30daymapch
 | 01 | Points | [Hungry in Syracuse](Maps/day01_points_syracuse_food.png) | [R script](Scripts/day01_points_syracuse_food.R) |
 | 02 | Lines | [A way through Philly](Maps/day02_lines_philadelphia_buses_01_citywide.png) | [R script](Scripts/day02_lines_philadelphia_buses.R) |
 | 03 | Polygons | [A greener Philly](Maps/day03_polygons_philadelphia_parks.png) | [R script](Scripts/day03_polygons_philadelphia_parks.R) |
+| 04 | Clusters | [Coffee, in good company](Maps/day04_clusters_manhattan_cafes.png) | [R script](Scripts/day04_clusters_manhattan_cafes.R) |
 
 ### Day 01 — Hungry in Syracuse
 
@@ -29,6 +30,12 @@ Companion images: [boarding guide](Maps/day02_lines_philadelphia_buses_02_boardi
 I love parks and want to explore more of Philadelphia. This map shows the shapes of park and recreation land, from small neighborhood sites to larger landscapes. Colors group sites by their mapped area; they do not measure tree cover or park quality.
 
 [![A greener Philly](Maps/Thumbnails/day03_thumbnail.png)](Maps/day03_polygons_philadelphia_parks.png)
+
+### Day 04 — Coffee, in good company
+
+Manhattan's mapped café clusters, with the entire island at left and enlarged views of the Upper West/East Sides, Midtown, and Lower Manhattan at right. Terracotta identifies clustered cafés; gray shows mapped cafés outside clusters. Light envelopes illustrate the groups.
+
+[![Coffee, in good company](Maps/Thumbnails/day04_thumbnail.png)](Maps/day04_clusters_manhattan_cafes.png)
 
 ## Repository layout
 
@@ -57,6 +64,7 @@ Run a daily script from the repository root:
 source("Scripts/day01_points_syracuse_food.R", encoding = "UTF-8")
 source("Scripts/day02_lines_philadelphia_buses.R", encoding = "UTF-8")
 source("Scripts/day03_polygons_philadelphia_parks.R", encoding = "UTF-8")
+source("Scripts/day04_clusters_manhattan_cafes.R", encoding = "UTF-8")
 ```
 
 The bundled data supports offline rendering. Day 2 includes a compact derived dataset; its large raw GTFS archive is downloaded only when rebuilding from the original feed. Download and preparation helpers are in `R/`. Arial and Cambria are used for text; substitute available font families on other systems.
@@ -66,6 +74,7 @@ The bundled data supports offline rendering. Day 2 includes a compact derived da
 - **Day 1:** [OpenStreetMap contributors](https://www.openstreetmap.org/copyright), Overpass, Nominatim, and official restaurant websites. Addresses, location provenance, and source links are in [the restaurant table](Data/day01_points/restaurants.csv). Check current menus and opening hours before visiting.
 - **Day 2:** [SEPTA GTFS v202611010](https://github.com/septadev/GTFS/releases/tag/v202611010), [Philadelphia City Limits](https://opendataphilly.org/datasets/city-limits/), and the city's [Business Improvement Districts](https://opendataphilly.org/datasets/business-improvement-districts/) layer. Bus geometry is clipped to the city boundary. All scheduled variants on the selected date are included; live detours, departures, and individual trip destinations can differ. The University City District service area is used to identify routes serving the area. See [the route guide](Data/day02_lines/derived/route-guide.csv).
 - **Day 3:** [Philadelphia Parks & Recreation](https://services.arcgis.com/fLeGjb7u4uXqeF9q/arcgis/rest/services/Parks/FeatureServer), City Limits, and [Philadelphia Water Department hydrology](https://opendataphilly.org/datasets/hydrology/). The map covers PPR-managed or maintained land, not every green space. Site areas are computed after clipping to the city, in NAD83 / UTM zone 18N. The Schuylkill River fade is a visual treatment, not a measurement. The Frosted Fern palette is credited to Macarons & Mimosas.
+- **Day 4:** [OpenStreetMap contributors](https://www.openstreetmap.org/copyright) and [NYC Department of City Planning borough boundaries](https://data.cityofnewyork.us/City-Government/Borough-Boundaries/gthc-hcne). A 140-metre DBSCAN neighborhood with minPts=5 identifies groups among 1,271 mapped café locations after removing five likely duplicates. This is an incomplete geographic snapshot, not a census or a measure of café quality. Methods and checks are in [the methods file](Data/day04_clusters/methods.json).
 
 See [Data/README.md](Data/README.md) for the cached files, limitations, and source terms. Third-party data remains subject to its original license and attribution requirements.
 
