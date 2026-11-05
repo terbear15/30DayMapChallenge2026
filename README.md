@@ -10,6 +10,7 @@ Maps by **Terry Boxuan Xu** for the [2026 #30DayMapChallenge](https://30daymapch
 | 02 | Lines | [A way through Philly](Maps/day02_lines_philadelphia_buses_01_citywide.png) | [R script](Scripts/day02_lines_philadelphia_buses.R) |
 | 03 | Polygons | [A greener Philly](Maps/day03_polygons_philadelphia_parks.png) | [R script](Scripts/day03_polygons_philadelphia_parks.R) |
 | 04 | Clusters | [Coffee, in good company](Maps/day04_clusters_manhattan_cafes.png) | [R script](Scripts/day04_clusters_manhattan_cafes.R) |
+| 05 | Senses: Sight | [The View from Twin Peaks](Maps/day05_sight_twin_peaks.png) | [R script](Scripts/day05_sight_twin_peaks.R) |
 
 ### Day 01 — Hungry in Syracuse
 
@@ -37,6 +38,12 @@ Manhattan's mapped café clusters, with the entire island at left and enlarged v
 
 [![Coffee, in good company](Maps/Thumbnails/day04_thumbnail.png)](Maps/day04_clusters_manhattan_cafes.png)
 
+### Day 05 — The View from Twin Peaks
+
+A terrain viewshed of San Francisco from Twin Peaks. Amber shows ground visible from the north summit, while two elevation profiles show a clear view and a view interrupted by a ridge.
+
+[![The View from Twin Peaks](Maps/Thumbnails/day05_thumbnail.png)](Maps/day05_sight_twin_peaks.png)
+
 ## Repository layout
 
 ```text
@@ -55,7 +62,7 @@ The organization follows [Elizabeth Delmelle's example](https://github.com/ECDel
 Install the required packages once:
 
 ```r
-install.packages(c("sf", "ggplot2", "jsonlite", "ragg", "httr2", "data.table", "digest", "png"))
+install.packages(c("sf", "ggplot2", "jsonlite", "ragg", "httr2", "data.table", "digest", "png", "terra"))
 ```
 
 Run a daily script from the repository root:
@@ -65,6 +72,7 @@ source("Scripts/day01_points_syracuse_food.R", encoding = "UTF-8")
 source("Scripts/day02_lines_philadelphia_buses.R", encoding = "UTF-8")
 source("Scripts/day03_polygons_philadelphia_parks.R", encoding = "UTF-8")
 source("Scripts/day04_clusters_manhattan_cafes.R", encoding = "UTF-8")
+source("Scripts/day05_sight_twin_peaks.R", encoding = "UTF-8")
 ```
 
 The bundled data supports offline rendering. Day 2 includes a compact derived dataset; its large raw GTFS archive is downloaded only when rebuilding from the original feed. Download and preparation helpers are in `R/`. Arial and Cambria are used for text; substitute available font families on other systems.
@@ -75,6 +83,8 @@ The bundled data supports offline rendering. Day 2 includes a compact derived da
 - **Day 2:** [SEPTA GTFS v202611010](https://github.com/septadev/GTFS/releases/tag/v202611010), [Philadelphia City Limits](https://opendataphilly.org/datasets/city-limits/), and the city's [Business Improvement Districts](https://opendataphilly.org/datasets/business-improvement-districts/) layer. Bus geometry is clipped to the city boundary. All scheduled variants on the selected date are included; live detours, departures, and individual trip destinations can differ. The University City District service area is used to identify routes serving the area. See [the route guide](Data/day02_lines/derived/route-guide.csv).
 - **Day 3:** [Philadelphia Parks & Recreation](https://services.arcgis.com/fLeGjb7u4uXqeF9q/arcgis/rest/services/Parks/FeatureServer), City Limits, and [Philadelphia Water Department hydrology](https://opendataphilly.org/datasets/hydrology/). The map covers PPR-managed or maintained land, not every green space. Site areas are computed after clipping to the city, in NAD83 / UTM zone 18N. The Schuylkill River fade is a visual treatment, not a measurement. The Frosted Fern palette is credited to Macarons & Mimosas.
 - **Day 4:** [OpenStreetMap contributors](https://www.openstreetmap.org/copyright) and [NYC Department of City Planning borough boundaries](https://data.cityofnewyork.us/City-Government/Borough-Boundaries/gthc-hcne). A 140-metre DBSCAN neighborhood with minPts=5 identifies groups among 1,271 mapped café locations after removing five likely duplicates. This is an incomplete geographic snapshot, not a census or a measure of café quality. Methods and checks are in [the methods file](Data/day04_clusters/methods.json).
+
+- **Day 5:** USGS 3DEP elevation, DataSF active street centerlines, and the San Francisco shoreline. See [the data and methods](Data/day05_sight/README.md).
 
 See [Data/README.md](Data/README.md) for the cached files, limitations, and source terms. Third-party data remains subject to its original license and attribution requirements.
 
