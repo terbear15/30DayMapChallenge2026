@@ -52,3 +52,7 @@ The resulting 1,271 locations are clustered with DBSCAN, using a 140-metre neigh
 Terracotta denotes cluster membership throughout the figure, without implying cuisine, ratings, price, brand, or popularity. Gray indicates cafés outside the selected clustering definition. Light buffered convex envelopes illustrate groups; they are not neighborhood boundaries, walking catchments, or observed areas of continuous café activity. All three detail panels use the same classifications as the island overview, with geographic enlargement of approximately 2.5–3 times. Missing or sparse points may reflect uneven OSM mapping, and the figure is not evidence that an area has no cafés.
 
 `cafes-clustered.csv` contains the final records and group IDs. `methods.json` contains counts, scope, source timestamp, parameters, and validation status. The daily script renders offline from these cached source files. `R/day04_download.R` can fetch missing sources; a fresh download will represent a different snapshot.
+
+## Day 06 — Philadelphia as the federal capital
+
+The cached John Hills 1796 Philadelphia plan supplies the historical street geometry. The poster is an annotated reproduction with a district detail and timeline. The four site anchors are approximate source-image pixel locations. Source links, rights, crop bounds, annotation methods, and landmark histories are in [day06_vintage/README.md](day06_vintage/README.md).
