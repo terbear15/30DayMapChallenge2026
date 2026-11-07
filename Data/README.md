@@ -56,3 +56,7 @@ Terracotta denotes cluster membership throughout the figure, without implying cu
 ## Day 06 — Philadelphia as the federal capital
 
 The cached John Hills 1796 Philadelphia plan supplies the historical street geometry. The poster is an annotated reproduction with a district detail and timeline. The four site anchors are approximate source-image pixel locations. Source links, rights, crop bounds, annotation methods, and landmark histories are in [day06_vintage/README.md](day06_vintage/README.md).
+
+## Day 07 — Philly / After Dark
+
+Official Philadelphia street centerlines and PWD river polygons, projected to UTM zone 18N. [Source details and timing](day07_ten_minute/README.md).

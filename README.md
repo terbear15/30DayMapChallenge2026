@@ -12,6 +12,7 @@ Maps by **Terry Boxuan Xu** for the [2026 #30DayMapChallenge](https://30daymapch
 | 04 | Clusters | [Coffee, in good company](Maps/day04_clusters_manhattan_cafes.png) | [R script](Scripts/day04_clusters_manhattan_cafes.R) |
 | 05 | Senses: Sight | [The View from Twin Peaks](Maps/day05_sight_twin_peaks.png) | [R script](Scripts/day05_sight_twin_peaks.R) |
 | 06 | Vintage | [Philadelphia, Capital of a Young Republic](Maps/day06_vintage_philadelphia_capital.png) | [R script](Scripts/day06_vintage_philadelphia_capital.R) |
+| 07 | 10 minute map | [Philly / After Dark](Maps/day07_ten_minute_philly_after_dark.png) | [R script](Scripts/day07_ten_minute_philly_after_dark.R) |
 
 ### Day 01 — Hungry in Syracuse
 
@@ -51,6 +52,12 @@ An annotated reproduction of John Hills's 1796 Philadelphia plan, with a 2.6-tim
 
 [![Philadelphia, Capital of a Young Republic](Maps/Thumbnails/day06_thumbnail.png)](Maps/day06_vintage_philadelphia_capital.png)
 
+### Day 07 — Philly / After Dark
+
+A minimal navy, blue, and gold street map of central Philadelphia, with six named corridors highlighted. The assisted build was timed after data preparation. Colors are a graphic night treatment and do not measure street lighting or activity.
+
+[![Philly / After Dark](Maps/Thumbnails/day07_thumbnail.png)](Maps/day07_ten_minute_philly_after_dark.png)
+
 ## Repository layout
 
 ```text
@@ -81,6 +88,7 @@ source("Scripts/day03_polygons_philadelphia_parks.R", encoding = "UTF-8")
 source("Scripts/day04_clusters_manhattan_cafes.R", encoding = "UTF-8")
 source("Scripts/day05_sight_twin_peaks.R", encoding = "UTF-8")
 source("Scripts/day06_vintage_philadelphia_capital.R", encoding = "UTF-8")
+source("Scripts/day07_ten_minute_philly_after_dark.R", encoding = "UTF-8")
 ```
 
 The bundled data supports offline rendering. Day 2 includes a compact derived dataset; its large raw GTFS archive is downloaded only when rebuilding from the original feed. Download and preparation helpers are in `R/`. Arial and Cambria are used for text; substitute available font families on other systems.
@@ -95,6 +103,8 @@ The bundled data supports offline rendering. Day 2 includes a compact derived da
 - **Day 5:** USGS 3DEP elevation, DataSF active street centerlines, and the San Francisco shoreline. See [the data and methods](Data/day05_sight/README.md).
 
 - **Day 6:** [John Hills's 1796 Philadelphia plan, Library of Congress](https://www.loc.gov/item/2007625050/), with landmark histories from NPS, the Federal Judicial Center, and the U.S. Supreme Court. See [the source and annotation methods](Data/day06_vintage/README.md).
+
+- **Day 7:** City of Philadelphia street centerlines and Philadelphia Water Department hydrography. See [data and timing](Data/day07_ten_minute/README.md).
 
 See [Data/README.md](Data/README.md) for the cached files, limitations, and source terms. Third-party data remains subject to its original license and attribution requirements.
 
