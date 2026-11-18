@@ -1,0 +1,41 @@
+{
+  "region_bounds": [
+    -132,
+    20,
+    -60,
+    56
+  ],
+  "day_year": 2004,
+  "day_month": 11,
+  "night_year": 2016,
+  "sources": {
+    "day": "https://science.nasa.gov/earth/earth-observatory/blue-marble-next-generation/base-map/",
+    "night": "https://science.nasa.gov/earth/earth-observatory/earth-at-night/maps/"
+  },
+  "assets": {
+    "day-globe-hd.jpg": {
+      "bytes": 18127347,
+      "sha256": "c459e1a6946e4cfa32ad1539b3a1c8aaaaffb07031386a837133551644691bed"
+    },
+    "day-globe.jpg": {
+      "bytes": 5159250,
+      "sha256": "07fee586b5f6938e3d6c8f52e4c533389ccecfb574aba8c0b52bc07db43a7990"
+    },
+    "day-us-hd.jpg": {
+      "bytes": 9114449,
+      "sha256": "ee0a53c844143f37e407e84637f29cc96e5d44423e67a4c257931c83d86a90d7"
+    },
+    "day-us.jpg": {
+      "bytes": 2446409,
+      "sha256": "a3d83d479a0bc1353466b1c02fabd8d55ce61728a180d0cc3e7564b21465ed2b"
+    },
+    "night-globe.jpg": {
+      "bytes": 821835,
+      "sha256": "aa61829a5ea9b6bdb8d171784ef09355c9d0545f6792229a4b33b9776a4d7969"
+    },
+    "night-us.jpg": {
+      "bytes": 906518,
+      "sha256": "9b92d32950391717ce61496f6758b1845548726591701cfe88d158659a71c0b5"
+    }
+  }
+}
