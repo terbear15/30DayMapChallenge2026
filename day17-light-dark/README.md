@@ -18,3 +18,6 @@ Install Pillow. Create a Data directory beside assets and save the following NAS
 - [night-A1.jpg](https://assets.science.nasa.gov/content/dam/science/esd/eo/images/imagerecords/144000/144898/BlackMarble_2016_A1.jpg)
 - [night-B1.jpg](https://assets.science.nasa.gov/content/dam/science/esd/eo/images/imagerecords/144000/144898/BlackMarble_2016_B1.jpg)
 Run python Scripts/prepare_detail.py to recreate the lightweight previews and the native-resolution regional day/night and global daylight tiles. Regional imagery spans 17,280 × 8,640 source pixels. Detail textures are streamed around the current view.
+
+### Clouds and oceans
+For the opening cloud composite and water reflectivity mask, save [clouds-hd.jpg](https://www.solarsystemscope.com/textures/download/8k_earth_clouds.jpg) and [ocean.tif](https://www.solarsystemscope.com/textures/download/2k_earth_specular_map.tif) from Solar System Scope (CC BY 4.0) in Data. Save [NASA November shaded bathymetry](https://assets.science.nasa.gov/content/dam/science/esd/eo/images/bmng/bmng-topography-bathymetry/november/world.topo.bathy.200411.3x5400x2700.jpg) as Data/ocean-relief.jpg. Run python Scripts/prepare_atmosphere.py to resample and combine the layers. The cloud opacity falls to zero as the camera settles.

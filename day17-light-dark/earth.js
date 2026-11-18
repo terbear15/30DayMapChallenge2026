@@ -6,7 +6,8 @@ export async function earthView(canvas) {
   renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
   const loader = new THREE.TextureLoader();
   const [world,lights]=await Promise.all(['day','night'].map(phase=>loader.loadAsync('./assets/'+phase+'-preview.jpg')));
-  const uniforms={world:{value:world},lights:{value:lights},region:{value:world},localLights:{value:lights},regionReady:{value:0}};
+  const atmosphere=await loader.loadAsync('./assets/atmosphere.webp');
+  const uniforms={atmosphere:{value:atmosphere},world:{value:world},lights:{value:lights},region:{value:world},localLights:{value:lights},regionReady:{value:0}};
   // Upgrade the regional base after the first paint, one texture at a time.
   setTimeout(async()=>{
     try{
@@ -33,6 +34,7 @@ export async function earthView(canvas) {
       uniform vec3 bounds;
       uniform sampler2D detailDay,detailNight;
       #endif
+      uniform sampler2D atmosphere;
       uniform sampler2D world,lights,region,localLights;
       float hash(vec2 p){return fract(sin(dot(mod(p,211.),vec2(127.1,311.7)))*43758.5453);}
       float noiseField(vec2 p){
@@ -75,6 +77,13 @@ export async function earthView(canvas) {
         #endif
         #endif
         float illumination=dot(vec3(cos(lat)*cos(lon),sin(lat),cos(lat)*sin(lon)),sun);
+        vec3 air=texture2D(atmosphere,globe).rgb;
+        vec3 normal=vec3(cos(lat)*cos(lon),sin(lat),cos(lat)*sin(lon));
+        vec3 eye=vec3(cos(center.y)*cos(center.x),sin(center.y),cos(center.y)*sin(center.x));
+        float ocean=smoothstep(.45,.95,air.g);
+        float glint=pow(max(0.,dot(reflect(-sun,normal),eye)),32.)*smoothstep(0.,.22,illumination);
+        vec3 sea=vec3(.026,.071,.125)+air.b*vec3(.13,.34,.53);
+        day=mix(day,sea,.72*ocean)+ocean*glint*vec3(.24,.22,.17);
         day=mix(vec3(dot(day,vec3(.2126,.7152,.0722))),day,.36+.24*progress);
         float terrain=dot(day,vec3(.2126,.7152,.0722));
         night=max(night,vec3(.024,.044,.082)+terrain*vec3(.055,.085,.13));
@@ -83,6 +92,13 @@ export async function earthView(canvas) {
         float twilight=exp(-pow(abs(illumination+.012)/.105,2.));
         vec3 surface=mix(night,day,smoothstep(-.16,.12,illumination));
         surface+=twilight*vec3(.075,.031,.008);
+        float veil=1.-smoothstep(.1,1.,progress);
+        if(veil>0.){
+          float clouds=smoothstep(.065,.89,air.r)*veil;
+          float sunlit=smoothstep(-.10,.35,illumination);
+          vec3 cloudColor=mix(vec3(.085,.10,.135),vec3(.86,.88,.90)*(.65+.35*direct),sunlit);
+          surface=mix(surface,cloudColor,clouds*.93);
+        }
         gl_FragColor=vec4(surface*(.83+.17*z),1.);
       }`});
   const scene=new THREE.Scene(),camera=new THREE.Camera();
