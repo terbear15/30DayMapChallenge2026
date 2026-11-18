@@ -91,8 +91,8 @@ export async function earthView(canvas) {
         vec3 sea=vec3(.026,.071,.125)+air.b*vec3(.13,.34,.53);
         day=mix(day,sea,.72*ocean)+ocean*glint*vec3(.24,.22,.17);
         day=mix(vec3(dot(day,vec3(.2126,.7152,.0722))),day,.36+.24*progress);
-        float terrain=dot(day,vec3(.2126,.7152,.0722));
-        night=max(night,vec3(.024,.044,.082)+terrain*vec3(.055,.085,.13));
+        float surfaceLuma=dot(day,vec3(.2126,.7152,.0722));
+        night=max(night,vec3(.024,.044,.082)+surfaceLuma*vec3(.055,.085,.13));
         float direct=sqrt(max(illumination,0.));
         day*=.63+.52*direct;
         if(terrainReady>.5 && inset>.0 && ocean<.95 && illumination>-.04){
