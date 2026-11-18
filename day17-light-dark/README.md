@@ -21,3 +21,6 @@ Run python Scripts/prepare_detail.py to recreate the lightweight previews and th
 
 ### Clouds and oceans
 For the opening cloud composite and water reflectivity mask, save [clouds-hd.jpg](https://www.solarsystemscope.com/textures/download/8k_earth_clouds.jpg) and [ocean.tif](https://www.solarsystemscope.com/textures/download/2k_earth_specular_map.tif) from Solar System Scope (CC BY 4.0) in Data. Save [NASA November shaded bathymetry](https://assets.science.nasa.gov/content/dam/science/esd/eo/images/bmng/bmng-topography-bathymetry/november/world.topo.bathy.200411.3x5400x2700.jpg) as Data/ocean-relief.jpg. Run python Scripts/prepare_atmosphere.py to resample and combine the layers. The cloud opacity falls to zero as the camera settles.
+
+### Terrain lighting
+Download [NASA GEBCO elevation imagery](https://assets.science.nasa.gov/content/dam/science/esd/eo/images/bmng/topography/gebco_08_rev_elev_21600x10800.jpg) as Data/elevation.jpg and run python Scripts/prepare_terrain.py. The renderer estimates east and north gradients with latitude-adjusted pixel spacing, then applies a gentle, vertically exaggerated hillshade using the simulation sun vector. Relief fades at the regional boundary and at night.

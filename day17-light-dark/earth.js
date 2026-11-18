@@ -7,7 +7,7 @@ export async function earthView(canvas) {
   const loader = new THREE.TextureLoader();
   const [world,lights]=await Promise.all(['day','night'].map(phase=>loader.loadAsync('./assets/'+phase+'-preview.jpg')));
   const atmosphere=await loader.loadAsync('./assets/atmosphere.webp');
-  const uniforms={atmosphere:{value:atmosphere},world:{value:world},lights:{value:lights},region:{value:world},localLights:{value:lights},regionReady:{value:0}};
+  const uniforms={terrain:{value:world},terrainReady:{value:0},atmosphere:{value:atmosphere},world:{value:world},lights:{value:lights},region:{value:world},localLights:{value:lights},regionReady:{value:0}};
   // Upgrade the regional base after the first paint, one texture at a time.
   setTimeout(async()=>{
     try{
@@ -22,6 +22,10 @@ export async function earthView(canvas) {
     size:{value:new THREE.Vector2()}, radius:{value:1}, center:{value:new THREE.Vector2()},
     sun:{value:new THREE.Vector3()}, progress:{value:0}
   });
+  loader.loadAsync('./assets/terrain.webp').then(texture=>{
+    uniforms.terrain.value=texture;
+    uniforms.terrainReady.value=1;
+  }).catch(()=>{/* Satellite imagery remains usable without relief. */});
   const material = new THREE.ShaderMaterial({uniforms,
     vertexShader:'varying vec2 screen; void main(){screen=uv; gl_Position=vec4(position.xy,0.,1.);}',
     fragmentShader:`
@@ -34,6 +38,8 @@ export async function earthView(canvas) {
       uniform vec3 bounds;
       uniform sampler2D detailDay,detailNight;
       #endif
+      uniform sampler2D terrain;
+      uniform float terrainReady;
       uniform sampler2D atmosphere;
       uniform sampler2D world,lights,region,localLights;
       float hash(vec2 p){return fract(sin(dot(mod(p,211.),vec2(127.1,311.7)))*43758.5453);}
@@ -89,6 +95,18 @@ export async function earthView(canvas) {
         night=max(night,vec3(.024,.044,.082)+terrain*vec3(.055,.085,.13));
         float direct=sqrt(max(illumination,0.));
         day*=.63+.52*direct;
+        if(terrainReady>.5 && inset>.0 && ocean<.95 && illumination>-.04){
+          vec2 stepUV=vec2(1./4096.,1./2048.);
+          float eastRise=texture2D(terrain,local+vec2(stepUV.x,0.)).r-texture2D(terrain,local-vec2(stepUV.x,0.)).r;
+          float northRise=texture2D(terrain,local+vec2(0.,stepUV.y)).r-texture2D(terrain,local-vec2(0.,stepUV.y)).r;
+          // NASA encodes 0..6400 m. Correct east-west spacing for latitude.
+          vec2 slope=vec2(eastRise/max(.35,cos(lat)),northRise)*(6400./(2.*111195.*72./4096.));
+          vec3 east=vec3(-sin(lon),0.,cos(lon));
+          vec3 north=vec3(-sin(lat)*cos(lon),cos(lat),-sin(lat)*sin(lon));
+          vec3 facet=normalize(normal-2.4*(slope.x*east+slope.y*north));
+          float contrast=clamp((dot(facet,sun)-illumination)*1.6,-.38,.32);
+          day*=1.+contrast*inset*(1.-ocean)*smoothstep(-.04,.08,illumination);
+        }
         float twilight=exp(-pow(abs(illumination+.012)/.105,2.));
         vec3 surface=mix(night,day,smoothstep(-.16,.12,illumination));
         surface+=twilight*vec3(.075,.031,.008);
