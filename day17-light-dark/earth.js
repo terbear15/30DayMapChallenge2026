@@ -1,12 +1,22 @@
 import * as THREE from './vendor/three.module.js';
 
+import {surfaceDetails} from './details.js';
 export async function earthView(canvas) {
   const renderer = new THREE.WebGLRenderer({canvas, antialias:true});
   renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
   const loader = new THREE.TextureLoader();
-  const images = await Promise.all([renderer.capabilities.maxTextureSize>=16384?'day-globe-hd':'day-globe','night-globe',renderer.capabilities.maxTextureSize>=8192?'day-us-hd':'day-us','night-us'].map(name =>
-    loader.loadAsync('./assets/'+name+'.jpg')));
-  const uniforms = Object.fromEntries(images.map((value,i)=>[['world','lights','region','localLights'][i],{value}]));
+  const [world,lights]=await Promise.all(['day','night'].map(phase=>loader.loadAsync('./assets/'+phase+'-preview.jpg')));
+  const uniforms={world:{value:world},lights:{value:lights},region:{value:world},localLights:{value:lights},regionReady:{value:0}};
+  // Upgrade the regional base after the first paint, one texture at a time.
+  setTimeout(async()=>{
+    try{
+      const globe=await loader.loadAsync('./assets/day-globe-medium.jpg');
+      uniforms.world.value=globe;
+      const region=await loader.loadAsync('./assets/day-us.jpg');
+      const night=await loader.loadAsync('./assets/night-us.jpg');
+      uniforms.region.value=region;uniforms.localLights.value=night;uniforms.regionReady.value=1;
+    }catch{/* The global base remains available. */}
+  },400);
   Object.assign(uniforms,{
     size:{value:new THREE.Vector2()}, radius:{value:1}, center:{value:new THREE.Vector2()},
     sun:{value:new THREE.Vector3()}, progress:{value:0}
@@ -18,6 +28,11 @@ export async function earthView(canvas) {
       uniform vec2 size,center;
       uniform float radius,progress;
       uniform vec3 sun;
+      uniform float regionReady;
+      #ifdef DETAIL
+      uniform vec3 bounds;
+      uniform sampler2D detailDay,detailNight;
+      #endif
       uniform sampler2D world,lights,region,localLights;
       float hash(vec2 p){return fract(sin(dot(mod(p,211.),vec2(127.1,311.7)))*43758.5453);}
       float noiseField(vec2 p){
@@ -46,9 +61,19 @@ export async function earthView(canvas) {
         vec2 globe=vec2(fract(lon/6.2831853+.5),lat/3.14159265+.5);
         vec2 local=(degrees(vec2(lon,lat))-vec2(-132.,20.))/vec2(72.,36.);
         vec2 edge=min(local,1.-local);
-        float inset=smoothstep(0.,.025,min(edge.x,edge.y));
+        float inset=regionReady*smoothstep(0.,.025,min(edge.x,edge.y));
         vec3 day=mix(texture2D(world,globe).rgb,texture2D(region,local).rgb,inset);
         vec3 night=mix(texture2D(lights,globe).rgb,texture2D(localLights,local).rgb,inset);
+        #ifdef DETAIL
+        vec2 tile=(vec2(fract(lon/6.2831853+.5)*360.-180.,degrees(lat))-bounds.xy)/bounds.z;
+        if(min(tile.x,tile.y)<0. || max(tile.x,tile.y)>1.)discard;
+        #ifdef REGIONAL
+        day=texture2D(detailDay,tile).rgb;
+        night=texture2D(detailNight,tile).rgb;
+        #else
+        day=mix(texture2D(detailDay,tile).rgb,day,inset);
+        #endif
+        #endif
         float illumination=dot(vec3(cos(lat)*cos(lon),sin(lat),cos(lat)*sin(lon)),sun);
         day=mix(vec3(dot(day,vec3(.2126,.7152,.0722))),day,.36+.24*progress);
         float terrain=dot(day,vec3(.2126,.7152,.0722));
@@ -62,7 +87,16 @@ export async function earthView(canvas) {
       }`});
   const scene=new THREE.Scene(),camera=new THREE.Camera();
   scene.add(new THREE.Mesh(new THREE.PlaneGeometry(2,2),material));
+  const details=surfaceDetails(scene,material,uniforms,loader);
+  let previousFrame=0,slowFrames=0;
   return function render(t,lon,lat,zoom,solar){
+    const now=performance.now(), elapsed=now-previousFrame;
+    previousFrame=now;
+    slowFrames=elapsed>36 && elapsed<300?slowFrames+1:Math.max(0,slowFrames-1);
+    if(slowFrames>=18 && renderer.getPixelRatio()>1){
+      renderer.setPixelRatio(Math.max(1,renderer.getPixelRatio()-.25));
+      slowFrames=0;
+    }
     const w=canvas.clientWidth,h=canvas.clientHeight;
     if(uniforms.size.value.x!==w || uniforms.size.value.y!==h){
       renderer.setSize(w,h,false); uniforms.size.value.set(w,h);
@@ -73,6 +107,7 @@ export async function earthView(canvas) {
     uniforms.center.value.set((18+(lon-18)*eased)*Math.PI/180,(8+(lat-8)*eased)*Math.PI/180);
     uniforms.progress.value=eased;
     uniforms.sun.value.fromArray(solar);
+    details(t,uniforms.center.value.x*180/Math.PI,uniforms.center.value.y*180/Math.PI,zoom,uniforms.radius.value,w,h,renderer.getPixelRatio());
     renderer.render(scene,camera);
   };
 }

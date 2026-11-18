@@ -7,8 +7,11 @@ let render, introStart, intro=true, previous=0,lastDraw=-1000;
 const reduced=matchMedia('(prefers-reduced-motion: reduce)').matches;
 function reset(){zoom=1;lon=-96;lat=38;}
 function start(){intro=false;document.body.classList.remove('intro-running');playing=!reduced;previous=performance.now();}
+let cachedDay,midnight,nextMidnight;
 function update(){
- const d=new Date(instant),key=dateKey(d),a=zonedTime(key),b=zonedTime(addDays(key,1));
+ const d=new Date(instant),key=dateKey(d);
+ if(key!==cachedDay){cachedDay=key;midnight=zonedTime(key);nextMidnight=zonedTime(addDays(key,1));}
+ const a=midnight,b=nextMidnight;
  el('timeline').value=(instant-a)/(b-a);el('date-label').textContent=key;
  regions.forEach((r,i)=>{const c=clockParts(d,r.zone);el('r'+i).textContent=c.time;if(!i){el('main-time').textContent=c.time;el('main-zone').textContent=c.abbreviation;}});
  el('play').textContent=playing?'Ⅱ':'▶';el('play').setAttribute('aria-label',playing?'Pause simulation':'Play simulation');
