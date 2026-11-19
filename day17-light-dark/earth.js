@@ -1,31 +1,20 @@
 import * as THREE from './vendor/three.module.js';
 
-import {surfaceDetails} from './details.js?v=global1';
+import {surfaceDetails} from './details.js?v=continuous1';
 export async function earthView(canvas) {
   const renderer = new THREE.WebGLRenderer({canvas, antialias:true});
   renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
   const loader = new THREE.TextureLoader();
-  const [world,lights]=await Promise.all(['day','night'].map(phase=>loader.loadAsync('./assets/'+phase+'-preview.jpg')));
-  const atmosphere=await loader.loadAsync('./assets/atmosphere.webp');
-  const uniforms={terrain:{value:world},terrainReady:{value:0},atmosphere:{value:atmosphere},world:{value:world},lights:{value:lights},region:{value:world},localLights:{value:lights},regionReady:{value:0}};
-  // Upgrade the regional base after the first paint, one texture at a time.
-  setTimeout(async()=>{
-    try{
-      const globe=await loader.loadAsync('./assets/day-globe-medium.jpg');
-      uniforms.world.value=globe;
-      const region=await loader.loadAsync('./assets/day-us.jpg');
-      const night=await loader.loadAsync('./assets/night-us.jpg');
-      uniforms.region.value=region;uniforms.localLights.value=night;uniforms.regionReady.value=1;
-    }catch{/* The global base remains available. */}
-  },400);
+  // Resolve the continuous base before starting the camera clock.
+  const [world,lights,region,localLights,atmosphere,terrain]=await Promise.all(
+    ['day-globe-medium.jpg','night-globe.jpg','day-us.jpg','night-us.jpg','atmosphere.webp','terrain.webp']
+      .map(file=>loader.loadAsync('./assets/'+file)));
+  const uniforms={terrain:{value:terrain},terrainReady:{value:1},atmosphere:{value:atmosphere},
+    world:{value:world},lights:{value:lights},region:{value:region},localLights:{value:localLights},regionReady:{value:1}};
   Object.assign(uniforms,{
     size:{value:new THREE.Vector2()}, radius:{value:1}, center:{value:new THREE.Vector2()},
     sun:{value:new THREE.Vector3()}, progress:{value:0}
   });
-  loader.loadAsync('./assets/terrain.webp').then(texture=>{
-    uniforms.terrain.value=texture;
-    uniforms.terrainReady.value=1;
-  }).catch(()=>{/* Satellite imagery remains usable without relief. */});
   const material = new THREE.ShaderMaterial({uniforms,
     vertexShader:'varying vec2 screen; void main(){screen=uv; gl_Position=vec4(position.xy,0.,1.);}',
     fragmentShader:`
@@ -36,6 +25,7 @@ export async function earthView(canvas) {
       uniform float regionReady;
       #ifdef DETAIL
       uniform vec3 bounds;
+      uniform float detailOpacity;
       uniform sampler2D detailDay,detailNight,detailElevation;
       uniform vec2 elevationCorner;
       #endif
@@ -130,6 +120,9 @@ export async function earthView(canvas) {
           surface=mix(surface,cloudColor,clouds*.93);
         }
         gl_FragColor=vec4(surface*(.83+.17*z),1.);
+        #ifdef DETAIL
+        gl_FragColor.a=detailOpacity;
+        #endif
       }`});
   const scene=new THREE.Scene(),camera=new THREE.Camera();
   scene.add(new THREE.Mesh(new THREE.PlaneGeometry(2,2),material));

@@ -3,7 +3,7 @@ import * as THREE from './vendor/three.module.js';
 // Tile meshes limit the detail shader to the corresponding patch on the globe.
 export function surfaceDetails(scene, base, common, loader) {
   const mobile=matchMedia('(pointer:coarse)').matches;
-  const limit=mobile?40:80;
+  const limit=mobile?6:14;
   const live=new Map(), failed=new Map(), pending=new Set();
   let wanted=[], busy=0, signature='';
   const heights=new Map();
@@ -22,7 +22,7 @@ export function surfaceDetails(scene, base, common, loader) {
       gl_Position=vec4(screen*2.-1.,0.,1.);
     }`;
   async function next(){
-    if(busy>=4)return;
+    if(busy>=2)return;
     const item=wanted.find(i=>!live.has(i.key)&&!pending.has(i.key)&&(failed.get(i.key)||0)<Date.now());
     if(!item)return;
     pending.add(item.key);busy++;
@@ -37,30 +37,33 @@ export function surfaceDetails(scene, base, common, loader) {
     dem.users++;
     function release(){if(--dem.users===0){heights.delete(demKey);dem.image.then(t=>t.dispose()).catch(()=>{});}}
     try {
-      const root='https://gibs.earthdata.nasa.gov/wmts/epsg4326/best/';
-      const path='/500m/'+item.level+'/'+item.row+'/'+item.col;
-      const urls=[root+'BlueMarble_NextGeneration/default'+path+'.jpeg',root+'VIIRS_Black_Marble/default/2016-01-01'+path+'.png'];
+      const urls=['day','night'].map(phase=>'./assets/satellite/'+phase+'_'+item.col+'_'+item.row+'.webp');
       const results=await Promise.allSettled([...urls.map(url=>loader.loadAsync(url)),dem.image]);
       textures=results.slice(0,2).filter(r=>r.status==='fulfilled').map(r=>r.value);
       if(textures.length!==2 || results[2].status!=='fulfilled')throw Error('Tile unavailable');
       if(wanted.some(i=>i.key===item.key)){
         const material=new THREE.ShaderMaterial({
-          uniforms:{...common,bounds:{value:new THREE.Vector3(item.x,item.y,item.step)},
+          uniforms:{...common,detailOpacity:{value:0},bounds:{value:new THREE.Vector3(item.x,item.y,item.step)},
             detailElevation:{value:results[2].value},elevationCorner:{value:new THREE.Vector2(-180+col*18,72-row*18)},detailDay:{value:textures[0]},detailNight:{value:textures[1]||textures[0]}},
           defines:{DETAIL:1,REGIONAL:1},
-          vertexShader,fragmentShader:base.fragmentShader,depthTest:false,depthWrite:false,side:THREE.DoubleSide
+          vertexShader,fragmentShader:base.fragmentShader,depthTest:false,depthWrite:false,transparent:true,side:THREE.FrontSide
         });
         const mesh=new THREE.Mesh(geometry,material);
         mesh.frustumCulled=false;mesh.renderOrder=2;
-        scene.add(mesh);live.set(item.key,{mesh,textures,release});retained=true;textures=[];
+        scene.add(mesh);live.set(item.key,{mesh,textures,release,born:performance.now()});retained=true;textures=[];
       }
     }catch{failed.set(item.key,Date.now()+60000);}
     finally{if(!retained)release();textures.forEach(t=>t.dispose());pending.delete(item.key);busy--;}
   }
   return function update(t,lon,lat,zoom,radius,w,h,pixelRatio){
-    const demand=radius*pixelRatio*Math.PI/180;
-    const level=Math.max(4,Math.min(7,Math.ceil(Math.log2(demand*288/512))));
-    const step=288/2**level;
+    // The landing has no layer change. Refinement follows deliberate exploration.
+    const exploring=t===1 && (zoom>1.06 || Math.abs(lon+96)>1 || Math.abs(lat-38)>1);
+    for(const tile of live.values()){
+      tile.mesh.visible=exploring;
+      tile.mesh.material.uniforms.detailOpacity.value=Math.min(1,(performance.now()-tile.born)/550);
+    }
+    if(!exploring)return;
+    const step=6,level=1;
     const key=[level,Math.round(lon/step*3),Math.round(lat/step*3),Math.round(radius/w*10),w,h].join('/');
     if(key!==signature){
       signature=key;wanted=[];
@@ -82,7 +85,6 @@ export function surfaceDetails(scene, base, common, loader) {
         scene.remove(entry.mesh);entry.mesh.material.dispose();entry.textures.forEach(t=>t.dispose());entry.release();live.delete(id);
       }
     }
-    // Avoid network churn while the globe is rotating.
-    if(t===1 || t<.05)next();
+    next();
   };
 }

@@ -1,5 +1,5 @@
 import {regions, HOUR, sunVector, altitude, dateKey, addDays, zonedTime, clockParts} from './solar.js';
-import {earthView} from './earth.js?v=global1';
+import {earthView} from './earth.js?v=continuous1';
 const el=id=>document.getElementById(id);
 const canvas=el('map');
 let instant=zonedTime(dateKey(new Date()),12), playing=false, speed=1, zoom=1, lon=-96,lat=38, selection=null;
@@ -20,7 +20,7 @@ function update(){
 }
 function frame(now){
  if(!intro && playing)instant+=(now-previous)*speed*HOUR/500;previous=now;
- const progress=intro?Math.max(0,Math.min(1,(now-introStart)/7500)):1;
+ const progress=intro?Math.max(0,Math.min(1,(now-introStart)/5000)):1;
  render(progress,lon,lat,zoom,sunVector(new Date(instant)));
  if(intro && progress===1)start();
  if(!intro && now-lastDraw>120){update();lastDraw=now;}
