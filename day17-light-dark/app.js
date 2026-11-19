@@ -1,11 +1,32 @@
-import {regions, HOUR, sunVector, altitude, dateKey, addDays, zonedTime, clockParts} from './solar.js';
+import {regions as americanZones, HOUR, sunVector, altitude, dateKey, addDays, zonedTime, clockParts} from './solar.js';
 import {earthView} from './earth.js?v=continuous1';
 const el=id=>document.getElementById(id);
 const canvas=el('map');
 let instant=zonedTime(dateKey(new Date()),12), playing=false, speed=1, zoom=1, lon=-96,lat=38, selection=null;
 let render, introStart, intro=true, previous=0,lastDraw=-1000;
 const reduced=matchMedia('(prefers-reduced-motion: reduce)').matches;
-function reset(){zoom=1;lon=-96;lat=38;}
+const zone=(name,zone,lat,lon)=>({name,zone,lat,lon});
+const views=[
+ {name:'North America',lon:-96,lat:38,zoom:1,clocks:americanZones},
+ {name:'Europe',lon:19,lat:51,zoom:1.04,clocks:[
+  zone('Western European','Europe/Lisbon',38.72,-9.14),zone('Central European','Europe/Berlin',52.52,13.40),
+  zone('Eastern European','Europe/Helsinki',60.17,24.94),zone('Moscow Time','Europe/Moscow',55.75,37.62),
+  zone('Türkiye Time','Europe/Istanbul',41.01,28.98)]},
+ {name:'East Asia',lon:125,lat:29,zoom:1.45,clocks:[
+  zone('China Standard Time','Asia/Shanghai',39.90,116.41),zone('Japan Standard Time','Asia/Tokyo',35.68,139.69),
+  zone('Korea Standard Time','Asia/Seoul',37.57,126.98)]}
+];
+let viewIndex=0,regions=views[0].clocks;
+function reset(){const view=views[viewIndex];zoom=view.zoom;lon=view.lon;lat=view.lat;}
+function switchView(direction){
+ if(intro)return;
+ viewIndex=(viewIndex+direction+views.length)%views.length;
+ const view=views[viewIndex];regions=view.clocks;reset();selection=null;
+ el('region-detail').hidden=true;el('view-name').textContent=view.name;
+ el('previous-view').setAttribute('aria-label','View '+views[(viewIndex+2)%3].name);
+ el('next-view').setAttribute('aria-label','View '+views[(viewIndex+1)%3].name);
+ buildClocks();update();
+}
 function start(){intro=false;document.body.classList.remove('intro-running');playing=!reduced;previous=performance.now();}
 let cachedDay,midnight,nextMidnight;
 function update(){
@@ -13,7 +34,8 @@ function update(){
  if(key!==cachedDay){cachedDay=key;midnight=zonedTime(key);nextMidnight=zonedTime(addDays(key,1));}
  const a=midnight,b=nextMidnight;
  el('timeline').value=(instant-a)/(b-a);el('date-label').textContent=key;
- regions.forEach((r,i)=>{const c=clockParts(d,r.zone);el('r'+i).textContent=c.time;if(!i){el('main-time').textContent=c.time;el('main-zone').textContent=c.abbreviation;}});
+ regions.forEach((r,i)=>{const c=clockParts(d,r.zone);el('r'+i).textContent=c.time;const localDay=dateKey(d,r.zone);el('r'+i).dataset.day=localDay>key?'+1':localDay<key?'−1':'';el('r'+i).title=localDay+' · '+c.abbreviation;});
+ const reference=clockParts(d,americanZones[0].zone);el('main-time').textContent=reference.time;el('main-zone').textContent=reference.abbreviation;
  el('play').textContent=playing?'Ⅱ':'▶';el('play').setAttribute('aria-label',playing?'Pause simulation':'Play simulation');
  if(selection){const r=selection, times=SunCalc.getTimes(new Date(zonedTime(dateKey(d,r.zone),12,r.zone)),r.lat,r.lon);
  el('region-detail').textContent=r.name+' · Solar altitude '+altitude(d,r.lat,r.lon).toFixed(1)+'° · Sunrise '+clockParts(times.sunrise,r.zone).time+' · Sunset '+clockParts(times.sunset,r.zone).time;}
@@ -26,7 +48,10 @@ function frame(now){
  if(!intro && now-lastDraw>120){update();lastDraw=now;}
 requestAnimationFrame(frame);
 }
-regions.forEach((r,i)=>{const b=document.createElement('button');b.className='region-clock';b.innerHTML='<span class="region-name">'+r.name+'</span><strong style="display:block" id="r'+i+'"></strong>';b.onclick=()=>{selection=selection===r?null:r;el('region-detail').hidden=!selection;};el('region-clocks').append(b);});
+function buildClocks(){const wrap=el('region-clocks');wrap.replaceChildren();wrap.style.gridTemplateColumns='repeat('+regions.length+', minmax(0,1fr))';regions.forEach((r,i)=>{const b=document.createElement('button');b.className='region-clock';b.innerHTML='<span class="region-name">'+r.name+'</span><strong style="display:block" id="r'+i+'"></strong>';b.onclick=()=>{selection=selection===r?null:r;el('region-detail').hidden=!selection;};el('region-clocks').append(b);});
+}
+buildClocks();
+el('previous-view').onclick=()=>switchView(-1);el('next-view').onclick=()=>switchView(1);
 el('play').onclick=()=>playing=!playing;el('restart').onclick=()=>instant=zonedTime(dateKey(new Date(instant)),12);
 el('speed').onchange=e=>speed=+e.target.value;
 el('timeline').oninput=e=>{playing=false;const key=dateKey(new Date(instant)),a=zonedTime(key);instant=a+Math.min(.999999,+e.target.value)*(zonedTime(addDays(key,1))-a);};
@@ -56,6 +81,7 @@ function scale(n){zoom=Math.max(.8,Math.min(6,zoom*n));}
 canvas.ondblclick=reset;
 canvas.onkeydown=e=>{
  if(intro)return;
+ if(e.key===' ' || e.key==='Enter'){e.preventDefault();playing=!playing;update();return;}
  const step=8/zoom;
  if(e.key==='ArrowRight')lon+=step;
  else if(e.key==='ArrowLeft')lon-=step;
@@ -65,8 +91,25 @@ canvas.onkeydown=e=>{
  e.preventDefault();lon=((lon+540)%360)-180;lat=Math.max(-89,Math.min(89,lat));
 };
 canvas.onwheel=e=>{e.preventDefault();if(!intro)scale(Math.exp(-e.deltaY*.001));};
-canvas.onpointerdown=e=>!intro && canvas.setPointerCapture(e.pointerId);
-canvas.onpointermove=e=>{if(canvas.hasPointerCapture(e.pointerId)){const k=Math.min(canvas.width/72,canvas.height/52)*zoom;lon=((lon-e.movementX/k+540)%360)-180;lat=Math.max(-80,Math.min(80,lat+e.movementY/k));}};
+let gesture=null;
+canvas.onpointerdown=e=>{
+ if(intro||!e.isPrimary||e.button!==0)return;
+ canvas.setPointerCapture(e.pointerId);
+ gesture={id:e.pointerId,x:e.clientX,y:e.clientY,lon,lat,drag:false};
+};
+canvas.onpointermove=e=>{
+ if(!gesture||gesture.id!==e.pointerId)return;
+ const dx=e.clientX-gesture.x,dy=e.clientY-gesture.y;
+ if(Math.hypot(dx,dy)>5)gesture.drag=true;
+ if(!gesture.drag)return;
+ const k=Math.min(canvas.clientWidth/72,canvas.clientHeight/52)*zoom;
+ lon=((gesture.lon-dx/k+540)%360)-180;lat=Math.max(-89,Math.min(89,gesture.lat+dy/k));
+};
+canvas.onpointerup=e=>{
+ if(gesture?.id===e.pointerId && !gesture.drag && Math.hypot(e.clientX-gesture.x,e.clientY-gesture.y)<=5){playing=!playing;update();}
+ gesture=null;
+};
+canvas.onpointercancel=canvas.onlostpointercapture=()=>{gesture=null;};
 el('zone-toggle').disabled=true;el('zone-toggle').title='Boundary overlay pending';
 el('retry').onclick=()=>location.reload();
 try{
