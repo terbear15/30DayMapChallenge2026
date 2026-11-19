@@ -24,3 +24,6 @@ For the opening cloud composite and water reflectivity mask, save [clouds-hd.jpg
 
 ### Terrain lighting
 Download [NASA GEBCO elevation imagery](https://assets.science.nasa.gov/content/dam/science/esd/eo/images/bmng/topography/gebco_08_rev_elev_21600x10800.jpg) as Data/elevation.jpg and run python Scripts/prepare_terrain.py. The renderer estimates east and north gradients with latitude-adjusted pixel spacing, then applies a gentle, vertically exaggerated hillshade using the simulation sun vector. Relief fades at the regional boundary and at night.
+
+### Worldwide detail and playback
+The default playback rate is two simulated hours per real second (12 seconds per 24 hours). NASA GIBS EPSG:4326 WMTS supplies BlueMarble_NextGeneration and VIIRS_Black_Marble (2016-01-01) across the globe, with the same 500 m pyramid through level 7. Texture selection follows projected pixel density. The static base stays visible while network tiles load. GEBCO gradients use locally hosted, shared 18-degree elevation tiles (one arcminute sampling). Run python Scripts/prepare_global_elevation.py with the elevation.jpg described above to rebuild them. Arrow keys on the focused map pan across regions. Regional clocks still follow the four US reference zones.

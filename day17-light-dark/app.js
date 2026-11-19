@@ -1,5 +1,5 @@
 import {regions, HOUR, sunVector, altitude, dateKey, addDays, zonedTime, clockParts} from './solar.js';
-import {earthView} from './earth.js?v=relief2';
+import {earthView} from './earth.js?v=global1';
 const el=id=>document.getElementById(id);
 const canvas=el('map');
 let instant=zonedTime(dateKey(new Date()),12), playing=false, speed=1, zoom=1, lon=-96,lat=38, selection=null;
@@ -19,7 +19,7 @@ function update(){
  el('region-detail').textContent=r.name+' · Solar altitude '+altitude(d,r.lat,r.lon).toFixed(1)+'° · Sunrise '+clockParts(times.sunrise,r.zone).time+' · Sunset '+clockParts(times.sunset,r.zone).time;}
 }
 function frame(now){
- if(!intro && playing)instant+=(now-previous)*speed*HOUR/1500;previous=now;
+ if(!intro && playing)instant+=(now-previous)*speed*HOUR/500;previous=now;
  const progress=intro?Math.max(0,Math.min(1,(now-introStart)/7500)):1;
  render(progress,lon,lat,zoom,sunVector(new Date(instant)));
  if(intro && progress===1)start();
@@ -54,6 +54,16 @@ el('hide-button').onclick=el('show-interface').onclick=toggleUI;
 
 function scale(n){zoom=Math.max(.8,Math.min(6,zoom*n));}
 canvas.ondblclick=reset;
+canvas.onkeydown=e=>{
+ if(intro)return;
+ const step=8/zoom;
+ if(e.key==='ArrowRight')lon+=step;
+ else if(e.key==='ArrowLeft')lon-=step;
+ else if(e.key==='ArrowUp')lat+=step;
+ else if(e.key==='ArrowDown')lat-=step;
+ else return;
+ e.preventDefault();lon=((lon+540)%360)-180;lat=Math.max(-89,Math.min(89,lat));
+};
 canvas.onwheel=e=>{e.preventDefault();if(!intro)scale(Math.exp(-e.deltaY*.001));};
 canvas.onpointerdown=e=>!intro && canvas.setPointerCapture(e.pointerId);
 canvas.onpointermove=e=>{if(canvas.hasPointerCapture(e.pointerId)){const k=Math.min(canvas.width/72,canvas.height/52)*zoom;lon=((lon-e.movementX/k+540)%360)-180;lat=Math.max(-80,Math.min(80,lat+e.movementY/k));}};

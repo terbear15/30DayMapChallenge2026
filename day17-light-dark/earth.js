@@ -1,6 +1,6 @@
 import * as THREE from './vendor/three.module.js';
 
-import {surfaceDetails} from './details.js';
+import {surfaceDetails} from './details.js?v=global1';
 export async function earthView(canvas) {
   const renderer = new THREE.WebGLRenderer({canvas, antialias:true});
   renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
@@ -36,7 +36,8 @@ export async function earthView(canvas) {
       uniform float regionReady;
       #ifdef DETAIL
       uniform vec3 bounds;
-      uniform sampler2D detailDay,detailNight;
+      uniform sampler2D detailDay,detailNight,detailElevation;
+      uniform vec2 elevationCorner;
       #endif
       uniform sampler2D terrain;
       uniform float terrainReady;
@@ -95,17 +96,28 @@ export async function earthView(canvas) {
         night=max(night,vec3(.024,.044,.082)+surfaceLuma*vec3(.055,.085,.13));
         float direct=sqrt(max(illumination,0.));
         day*=.63+.52*direct;
-        if(terrainReady>.5 && inset>.0 && ocean<.95 && illumination>-.04){
-          vec2 stepUV=vec2(1./4096.,1./2048.);
-          float eastRise=texture2D(terrain,local+vec2(stepUV.x,0.)).r-texture2D(terrain,local-vec2(stepUV.x,0.)).r;
-          float northRise=texture2D(terrain,local+vec2(0.,stepUV.y)).r-texture2D(terrain,local-vec2(0.,stepUV.y)).r;
-          // NASA encodes 0..6400 m. Correct east-west spacing for latitude.
-          vec2 slope=vec2(eastRise/max(.35,cos(lat)),northRise)*(6400./(2.*111195.*72./4096.));
+        #ifdef DETAIL
+        vec2 demUV=(vec2(globe.x*360.-180.,degrees(lat))-elevationCorner)/18.;
+        vec2 dx=vec2(1./1080.,0.);
+        float eastRise=texture2D(detailElevation,demUV+dx).r-texture2D(detailElevation,demUV-dx).r;
+        float northRise=texture2D(detailElevation,demUV+dx.yx).r-texture2D(detailElevation,demUV-dx.yx).r;
+        float reliefWeight=1.;
+        float spacing=111195./60.;
+        #else
+        vec2 dx=vec2(1./4096.,0.);
+        vec2 dy=vec2(0.,1./2048.);
+        float eastRise=texture2D(terrain,local+dx).r-texture2D(terrain,local-dx).r;
+        float northRise=texture2D(terrain,local+dy).r-texture2D(terrain,local-dy).r;
+        float reliefWeight=terrainReady*inset;
+        float spacing=111195.*72./4096.;
+        #endif
+        if(reliefWeight>.0 && ocean<.95 && illumination>-.04){
+          vec2 slope=vec2(eastRise/max(.035,cos(lat)),northRise)*(6400./(2.*spacing));
           vec3 east=vec3(-sin(lon),0.,cos(lon));
           vec3 north=vec3(-sin(lat)*cos(lon),cos(lat),-sin(lat)*sin(lon));
           vec3 facet=normalize(normal-2.4*(slope.x*east+slope.y*north));
           float contrast=clamp((dot(facet,sun)-illumination)*1.6,-.38,.32);
-          day*=1.+contrast*inset*(1.-ocean)*smoothstep(-.04,.08,illumination);
+          day*=1.+contrast*reliefWeight*(1.-ocean)*smoothstep(-.04,.08,illumination);
         }
         float twilight=exp(-pow(abs(illumination+.012)/.105,2.));
         vec3 surface=mix(night,day,smoothstep(-.16,.12,illumination));
