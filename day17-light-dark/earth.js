@@ -1,6 +1,7 @@
 import * as THREE from './vendor/three.module.js';
 
-import {surfaceDetails} from './details.js?v=continuous1';
+import {nightDetails} from './night-details.js';
+import {surfaceDetails} from './details.js?v=night2';
 export async function earthView(canvas) {
   const renderer = new THREE.WebGLRenderer({canvas, antialias:true});
   renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
@@ -12,6 +13,7 @@ export async function earthView(canvas) {
   const uniforms={terrain:{value:terrain},terrainReady:{value:1},atmosphere:{value:atmosphere},
     world:{value:world},lights:{value:lights},region:{value:region},localLights:{value:localLights},regionReady:{value:1}};
   Object.assign(uniforms,{
+    nightOverview:{value:lights},overviewRect:{value:new THREE.Vector4(0,0,1,1)},overviewReady:{value:0},
     size:{value:new THREE.Vector2()}, radius:{value:1}, center:{value:new THREE.Vector2()},
     sun:{value:new THREE.Vector3()}, progress:{value:0}
   });
@@ -22,7 +24,9 @@ export async function earthView(canvas) {
       uniform vec2 size,center;
       uniform float radius,progress;
       uniform vec3 sun;
-      uniform float regionReady;
+      uniform float regionReady,overviewReady;
+      uniform vec4 overviewRect;
+      uniform sampler2D nightOverview;
       #ifdef DETAIL
       uniform vec3 bounds;
       uniform float detailOpacity;
@@ -63,6 +67,9 @@ export async function earthView(canvas) {
         float inset=regionReady*smoothstep(0.,.025,min(edge.x,edge.y));
         vec3 day=mix(texture2D(world,globe).rgb,texture2D(region,local).rgb,inset);
         vec3 night=mix(texture2D(lights,globe).rgb,texture2D(localLights,local).rgb,inset);
+        vec2 overviewUV=(vec2(globe.x*360.-180.,degrees(lat))-overviewRect.xy)/overviewRect.zw;
+        vec2 overviewEdge=min(overviewUV,1.-overviewUV);
+        night=mix(night,texture2D(nightOverview,overviewUV).rgb,overviewReady*smoothstep(0.,.02,min(overviewEdge.x,overviewEdge.y)));
         #ifdef DETAIL
         vec2 tile=(vec2(fract(lon/6.2831853+.5)*360.-180.,degrees(lat))-bounds.xy)/bounds.z;
         if(min(tile.x,tile.y)<0. || max(tile.x,tile.y)>1.)discard;
@@ -126,9 +133,24 @@ export async function earthView(canvas) {
       }`});
   const scene=new THREE.Scene(),camera=new THREE.Camera();
   scene.add(new THREE.Mesh(new THREE.PlaneGeometry(2,2),material));
+  const nights=nightDetails(scene,uniforms,loader);
   const details=surfaceDetails(scene,material,uniforms,loader);
   let previousFrame=0,slowFrames=0;
-  return function render(t,lon,lat,zoom,solar){
+  const overviews={Europe:['europe',-30,24,96,54],'East Asia':['asia',90,6,72,54]};
+  let currentName,ownedOverview;
+  function setOverview(name){
+    if(name===currentName)return;
+    currentName=name;uniforms.overviewReady.value=0;
+    uniforms.nightOverview.value=lights;ownedOverview?.dispose();ownedOverview=null;
+    const meta=overviews[name];if(!meta)return;
+    loader.loadAsync('./assets/night-'+meta[0]+'.jpg').then(tex=>{
+      if(name!==currentName){tex.dispose();return;}
+      ownedOverview=tex;uniforms.nightOverview.value=tex;
+      uniforms.overviewRect.value.set(...meta.slice(1));uniforms.overviewReady.value=1;
+    }).catch(()=>{});
+  }
+  return function render(t,lon,lat,zoom,solar,name){
+    setOverview(name);
     const now=performance.now(), elapsed=now-previousFrame;
     previousFrame=now;
     slowFrames=elapsed>36 && elapsed<300?slowFrames+1:Math.max(0,slowFrames-1);
@@ -147,6 +169,7 @@ export async function earthView(canvas) {
     uniforms.progress.value=eased;
     uniforms.sun.value.fromArray(solar);
     details(t,uniforms.center.value.x*180/Math.PI,uniforms.center.value.y*180/Math.PI,zoom,uniforms.radius.value,w,h,renderer.getPixelRatio());
+    nights(t,lon,lat,uniforms.radius.value,w,h,renderer.getPixelRatio(),zoom);
     renderer.render(scene,camera);
   };
 }

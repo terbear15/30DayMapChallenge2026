@@ -1,5 +1,5 @@
 import {regions as americanZones, HOUR, sunVector, altitude, dateKey, addDays, zonedTime, clockParts} from './solar.js';
-import {earthView} from './earth.js?v=continuous1';
+import {earthView} from './earth.js?v=night2';
 const el=id=>document.getElementById(id);
 const canvas=el('map');
 let instant=zonedTime(dateKey(new Date()),12), playing=false, speed=1, zoom=1, lon=-96,lat=38, selection=null;
@@ -8,11 +8,11 @@ const reduced=matchMedia('(prefers-reduced-motion: reduce)').matches;
 const zone=(name,zone,lat,lon)=>({name,zone,lat,lon});
 const views=[
  {name:'North America',lon:-96,lat:38,zoom:1,clocks:americanZones},
- {name:'Europe',lon:19,lat:51,zoom:1.04,clocks:[
+ {name:'Europe',lon:19,lat:46,zoom:.98,clocks:[
   zone('Western European','Europe/Lisbon',38.72,-9.14),zone('Central European','Europe/Berlin',52.52,13.40),
   zone('Eastern European','Europe/Helsinki',60.17,24.94),zone('Moscow Time','Europe/Moscow',55.75,37.62),
   zone('Türkiye Time','Europe/Istanbul',41.01,28.98)]},
- {name:'East Asia',lon:125,lat:29,zoom:1.45,clocks:[
+ {name:'East Asia',lon:127,lat:38,zoom:.86,clocks:[
   zone('China Standard Time','Asia/Shanghai',39.90,116.41),zone('Japan Standard Time','Asia/Tokyo',35.68,139.69),
   zone('Korea Standard Time','Asia/Seoul',37.57,126.98)]}
 ];
@@ -43,7 +43,7 @@ function update(){
 function frame(now){
  if(!intro && playing)instant+=(now-previous)*speed*HOUR/500;previous=now;
  const progress=intro?Math.max(0,Math.min(1,(now-introStart)/5000)):1;
- render(progress,lon,lat,zoom,sunVector(new Date(instant)));
+ render(progress,lon,lat,zoom,sunVector(new Date(instant)),views[viewIndex].name);
  if(intro && progress===1)start();
  if(!intro && now-lastDraw>120){update();lastDraw=now;}
 requestAnimationFrame(frame);
