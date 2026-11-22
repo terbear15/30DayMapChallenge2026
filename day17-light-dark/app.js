@@ -27,7 +27,7 @@ function switchView(direction){
  el('next-view').setAttribute('aria-label','View '+views[(viewIndex+1)%3].name);
  buildClocks();update();
 }
-function start(){intro=false;document.body.classList.remove('intro-running');playing=!reduced;previous=performance.now();}
+function start(){el('skip-camera').hidden=true;intro=false;document.body.classList.remove('intro-running');playing=!reduced;previous=performance.now();}
 let cachedDay,midnight,nextMidnight;
 function update(){
  const d=new Date(instant),key=dateKey(d);
@@ -113,5 +113,9 @@ canvas.onpointercancel=canvas.onlostpointercapture=()=>{gesture=null;};
 el('zone-toggle').disabled=true;el('zone-toggle').title='Boundary overlay pending';
 el('retry').onclick=()=>location.reload();
 try{
- render=await earthView(canvas);el('loading').hidden=true;document.body.classList.add('intro-running');introStart=performance.now();if(reduced)start();requestAnimationFrame(frame);
+ render=await earthView(canvas);el('loading').hidden=true;document.body.classList.add('intro-running');function enter(){el('welcome').close();introStart=performance.now();el('skip-camera').hidden=reduced;if(reduced)start();requestAnimationFrame(frame);}
+ render(0,lon,lat,zoom,sunVector(new Date(instant)),views[0].name);
+ el('skip-camera').onclick=start;el('explore').onclick=enter;
+ el('welcome').oncancel=e=>{e.preventDefault();enter();};
+ if(location.hash==='#earth'){enter();start();}else el('welcome').showModal();
 }catch(err){el('loading').hidden=true;el('error').hidden=false;el('error-message').textContent=err.message;}
