@@ -71,7 +71,13 @@ function toggle(){
  if(t>=1){t=0;blend=0;selectProjection(null);}
  playing=!playing;
 }
-$('play').onclick=toggle;let gesture=null;
+$('play').onclick=toggle;document.addEventListener('keydown', event => {
+  if (event.code !== 'Space' || event.altKey || event.ctrlKey || event.metaKey || event.shiftKey) return;
+  if (event.target.isContentEditable || event.target.closest('input, select, textarea, button, a[href], dialog')) return;
+  event.preventDefault();
+  if (!event.repeat) toggle();
+});
+let gesture=null;
 $('route').onpointerdown=e=>{if(!e.isPrimary)return;gesture={x:e.clientX,y:e.clientY,a:yaw,b:pitch,drag:false};e.target.setPointerCapture(e.pointerId);};
 $('route').onpointermove=e=>{if(!gesture)return;const dx=e.clientX-gesture.x,dy=e.clientY-gesture.y;if(Math.hypot(dx,dy)>5)gesture.drag=true;
  if(gesture.drag && +$('projection').value===0){automatic=false;transition=null;buttons.forEach((b,i)=>b.setAttribute('aria-pressed',String(i===0)));yaw=gesture.a+dx*.005;pitch=Math.max(-1.25,Math.min(1.25,gesture.b+dy*.004));orient();}};
