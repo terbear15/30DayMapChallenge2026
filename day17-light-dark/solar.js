@@ -1,3 +1,9 @@
+const formats = new Map();
+function formatterFor(locale, options) {
+  const key = locale + JSON.stringify(options);
+  if (!formats.has(key)) formats.set(key, new Intl.DateTimeFormat(locale, options));
+  return formats.get(key);
+}
 export const HOUR = 3600000;
 export const EASTERN = 'America/New_York';
 export const regions = [
@@ -7,7 +13,7 @@ export const regions = [
   { name: 'Pacific', zone: 'America/Los_Angeles', lat: 34.0522, lon: -118.2437 }
 ];
 export function dateKey(date, zone = EASTERN) {
-  const parts = new Intl.DateTimeFormat('en-CA', { timeZone: zone, year: 'numeric', month: '2-digit', day: '2-digit' }).formatToParts(date);
+  const parts = formatterFor('en-CA', { timeZone: zone, year: 'numeric', month: '2-digit', day: '2-digit' }).formatToParts(date);
   const get = type => parts.find(p => p.type === type).value;
   return `${get('year')}-${get('month')}-${get('day')}`;
 }
@@ -20,7 +26,7 @@ export function zonedTime(key, hour = 0, zone = EASTERN) {
   const [y, m, d] = key.split('-').map(Number);
   const target = Date.UTC(y, m - 1, d, hour);
   let guess = target;
-  const formatter = new Intl.DateTimeFormat('en-US', { timeZone: zone, year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit', hourCycle: 'h23' });
+  const formatter = formatterFor('en-US', { timeZone: zone, year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit', hourCycle: 'h23' });
   for (let i = 0; i < 4; i++) {
     const p = Object.fromEntries(formatter.formatToParts(new Date(guess)).map(v => [v.type, v.value]));
     const shown = Date.UTC(+p.year, +p.month - 1, +p.day, +p.hour, +p.minute, +p.second);
@@ -49,7 +55,7 @@ export function altitude(date, lat, lon) {
   return Math.asin(Math.cos(lat*r)*Math.cos(lon*r)*s[0] + Math.sin(lat*r)*s[1] + Math.cos(lat*r)*Math.sin(lon*r)*s[2]) / r;
 }
 export function clockParts(date, zone) {
-  const p = new Intl.DateTimeFormat('en-US', { timeZone: zone, hour: '2-digit', minute: '2-digit', hourCycle: 'h23', timeZoneName: 'short' }).formatToParts(date);
+  const p = formatterFor('en-US', { timeZone: zone, hour: '2-digit', minute: '2-digit', hourCycle: 'h23', timeZoneName: 'short' }).formatToParts(date);
   const get = t => p.find(v => v.type === t)?.value;
   return { time: `${get('hour')}:${get('minute')}`, abbreviation: get('timeZoneName') };
 }

@@ -4,7 +4,7 @@ import {nightDetails} from './night-details.js';
 import {surfaceDetails} from './details.js?v=night2';
 export async function earthView(canvas) {
   const renderer = new THREE.WebGLRenderer({canvas, antialias:true});
-  renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+  renderer.setPixelRatio(Math.min(devicePixelRatio, 1.5));
   const loader = new THREE.TextureLoader();
   // Resolve the continuous base before starting the camera clock.
   const [world,lights,region,localLights,atmosphere,terrain]=await Promise.all(
@@ -154,8 +154,8 @@ export async function earthView(canvas) {
     const now=performance.now(), elapsed=now-previousFrame;
     previousFrame=now;
     slowFrames=elapsed>36 && elapsed<300?slowFrames+1:Math.max(0,slowFrames-1);
-    if(slowFrames>=18 && renderer.getPixelRatio()>1){
-      renderer.setPixelRatio(Math.max(1,renderer.getPixelRatio()-.25));
+    if(slowFrames>=18 && renderer.getPixelRatio()>.75){
+      renderer.setPixelRatio(Math.max(.75,renderer.getPixelRatio()-.25));
       slowFrames=0;
     }
     const w=canvas.clientWidth,h=canvas.clientHeight;

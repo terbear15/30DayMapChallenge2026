@@ -2,15 +2,7 @@ import * as T from '../day17-light-dark/vendor/three.module.js';
 import {sunVector,altitude} from '../day17-light-dark/solar.js';
 const $=id=>document.getElementById(id),rad=Math.PI/180;
 const vec=(lon,lat)=>new T.Vector3(Math.cos(lat)*Math.cos(lon),Math.sin(lat),Math.cos(lat)*Math.sin(lon));
-const airports={
- JFK:['New York',-73.7789,40.6398,'America/New_York'],HND:['Tokyo',139.7798,35.5523,'Asia/Tokyo'],
- LHR:['London',-.4543,51.47,'Europe/London'],LAX:['Los Angeles',-118.408,33.9425,'America/Los_Angeles'],
- SIN:['Singapore',103.994,1.3502,'Asia/Singapore'],HKG:['Hong Kong',113.915,22.309,'Asia/Hong_Kong'],
- ICN:['Seoul',126.451,37.469,'Asia/Seoul'],TPE:['Taipei',121.233,25.078,'Asia/Taipei'],
- SYD:['Sydney',151.177,-33.946,'Australia/Sydney'],DXB:['Dubai',55.364,25.253,'Asia/Dubai'],
- CDG:['Paris',2.55,49.01,'Europe/Paris'],SFO:['San Francisco',-122.375,37.619,'America/Los_Angeles']
-};
-const schedules={'JFK-HND':870,'LHR-LAX':705,'LHR-SIN':820,'LHR-HKG':785,'LAX-ICN':865,'LAX-TPE':880,'LAX-SYD':930,'SYD-DXB':875,'CDG-SIN':790,'SFO-TPE':875};
+import {airports,schedules} from './routes.js';
 const requested=new URLSearchParams(location.search).get('flight');
 const flight=Object.hasOwn(schedules,requested)?requested:'JFK-HND';
 const [origin,destination]=flight.split('-'),pair=[airports[origin],airports[destination]];
@@ -95,21 +87,21 @@ let frames=[],w,h,m;
 function project(all){const i=Math.min(1,Math.floor(m)),k=m-i;
  return [0,1].map(d=>(all[i][d]*frames[i].scale+frames[i].shift[d])*(1-k)+(all[i+1][d]*frames[i+1].scale+frames[i+1].shift[d])*k);}
 async function run(){
- const renderer=new T.WebGLRenderer({canvas:$('surface'),antialias:true});renderer.setPixelRatio(Math.min(devicePixelRatio,2));
+ const renderer=new T.WebGLRenderer({canvas:$('surface'),antialias:true});renderer.setPixelRatio(Math.min(devicePixelRatio,1.5));
  const loader=new T.TextureLoader(),[day,night]=await Promise.all(['day-globe-medium','night-globe'].map(n=>loader.loadAsync('../day17-light-dark/assets/'+n+'.jpg')));
  for(const tex of [day,night]){tex.wrapS=T.RepeatWrapping;tex.needsUpdate=true;}
  const max=renderer.capabilities.maxTextureSize;
  const large=matchMedia('(pointer:fine)').matches && (navigator.deviceMemory||8)>=8;
  async function refine(){
-   if(max<8192)return;
-   const files=[['night','flight-night-hd'],['day',large&&max>=16384?'day-globe-hd':'day-globe']];
+   if(max<8192 || !large)return;
+   const files=[['night','flight-night-hd'],['day','day-globe']];
    for(const [key,name] of files){
      const tex=await loader.loadAsync('../day17-light-dark/assets/'+name+'.jpg');
      tex.wrapS=T.RepeatWrapping;tex.generateMipmaps=false;tex.minFilter=T.LinearFilter;
-     const old=uniforms[key].value;uniforms[key].value=tex;old.dispose();
+     const old=uniforms[key].value;uniforms[key].value=tex;old.dispose();textureVersion++;
    }
  }
- const geom=new T.PlaneGeometry(1,1,240,120),uv=geom.attributes.uv,xyz=geom.attributes.position;
+ const geom=new T.PlaneGeometry(1,1,160,80),uv=geom.attributes.uv,xyz=geom.attributes.position;
  const vectors=[],vertices=[],depth=new Float32Array(uv.count);
  for(let i=0;i<uv.count;i++){const offset=(uv.getX(i)-.5)*2*Math.PI,l=offset+meridian,p=(uv.getY(i)-.5)*Math.PI,v=vec(l,p);
  const maps=raw(v,l,p);maps[2][0]=offset;vectors.push(v);vertices.push(maps);depth[i]=v.dot(center);}
@@ -120,12 +112,12 @@ async function run(){
  const scene=new T.Scene(),mesh=new T.Mesh(geom,material);mesh.frustumCulled=false;scene.add(mesh);const camera=new T.Camera();
  renderer.setClearColor(0x05090d);const canvas=$('route'),ctx=canvas.getContext('2d');$('status').hidden=true;
  const labelFont='600 12px '+getComputedStyle(document.body).fontFamily;
- let points,lastBlend=-1;new ResizeObserver(()=>dirty=true).observe(document.querySelector('.deck'));
+ let lastMapTime, textureVersion=0, lastTexture=-1; let points,lastBlend=-1;new ResizeObserver(()=>dirty=true).observe(document.querySelector('.deck'));
  function render(now){
  if(playing){t=Math.min(1,t+(now-last)*3600*Number($('speed').value)/(arrival-departure));if(t===1)playing=false;}last=now;
  if(w!==canvas.clientWidth||h!==canvas.clientHeight||dirty){
  lastBlend=-1;dirty=false;w=canvas.clientWidth;h=canvas.clientHeight;m=+$('projection').value;
- renderer.setSize(w,h,false);const ratio=renderer.getPixelRatio();canvas.width=w*ratio;canvas.height=h*ratio;ctx.setTransform(ratio,0,0,ratio,0,0);
+ const ratio=renderer.getPixelRatio();if(canvas.width!==Math.floor(w*ratio)||canvas.height!==Math.floor(h*ratio)){renderer.setSize(w,h,false);canvas.width=w*ratio;canvas.height=h*ratio;}ctx.setTransform(ratio,0,0,ratio,0,0);
  if(orientationDirty){orientationDirty=false;
  for(let j=0;j<vectors.length;j++){const v=vectors[j];vertices[j][0]=[v.dot(right),v.dot(up)];depth[j]=v.dot(look);}
  geom.attributes.front.needsUpdate=true;samples=route.map(v=>raw(v,...coords(v)));}
@@ -151,9 +143,10 @@ async function run(){
    if(u===1)transition=null;
  }else if(automatic){blend=flightBlend;}
  m=blend;dial.value=m;uniforms.blend.value=m;uniforms.clip.value=m<=1?.18*m:.18-1.19*(m-1);
+ const mapChanged=lastBlend!==m || lastMapTime!==departure+t*(arrival-departure) || lastTexture!==textureVersion;
  if(lastBlend!==m){points=samples.map(project);lastBlend=m;}
  const time=new Date(departure+t*(arrival-departure)),v=position(t);
- uniforms.sun.value.fromArray(sunVector(time));renderer.render(scene,camera);
+ uniforms.sun.value.fromArray(sunVector(time));if(mapChanged){renderer.render(scene,camera);lastMapTime=departure+t*(arrival-departure);lastTexture=textureVersion;}
  ctx.clearRect(0,0,w,h);ctx.beginPath();let pen=false;points.forEach(([x,y],i)=>{if(m===0&&route[i].dot(look)<0){pen=false;return;}if(pen)ctx.lineTo(x,h-y);else ctx.moveTo(x,h-y);pen=true;}); ctx.save();ctx.globalAlpha=.75;ctx.strokeStyle='#edaa49';ctx.shadowColor='#ffad4b';ctx.shadowBlur=12;ctx.lineWidth=2.8;ctx.stroke();ctx.shadowBlur=0;ctx.strokeStyle='#ffe5a8';ctx.lineWidth=1;ctx.stroke();ctx.restore();
  // Each pulse follows equal-distance samples from departure to arrival.
  if(!reduceMotion){
