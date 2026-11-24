@@ -2,13 +2,36 @@ import * as T from '../day17-light-dark/vendor/three.module.js';
 import {sunVector,altitude} from '../day17-light-dark/solar.js';
 const $=id=>document.getElementById(id),rad=Math.PI/180;
 const vec=(lon,lat)=>new T.Vector3(Math.cos(lat)*Math.cos(lon),Math.sin(lat),Math.cos(lat)*Math.sin(lon));
-import {airports,schedules} from './routes.js';
+import {rankedAirports} from './airport-catalog.js';
+import {airports as legacy,schedules} from './routes.js';
+const airports={...rankedAirports,SYD:legacy.SYD};
 const requested=new URLSearchParams(location.search).get('flight');
-const flight=Object.hasOwn(schedules,requested)?requested:'JFK-HND';
+const flight=requested?.split('-').length===2 && requested.split('-').every(c=>Object.hasOwn(airports,c)) && requested.slice(0,3)!==requested.slice(4)?requested:'JFK-HND';
 const [origin,destination]=flight.split('-'),pair=[airports[origin],airports[destination]];
 const [A,B]=pair.map(a=>vec(a[1]*rad,a[2]*rad));
-for(const id of Object.keys(schedules)){const [a,b]=id.split('-');$('flights').add(new Option(airports[a][0]+' → '+airports[b][0]+' · '+id,id));}
-$('flights').value=flight;$('flights').onchange=e=>{const url=new URL(location.href);url.searchParams.set('flight',e.target.value);location.assign(url);};
+for(const [code,[city,,,,name]] of Object.entries(airports)){
+  $('airport-list').append(new Option(city+' · '+(name||'Sydney Airport'),code));
+}
+$('from').value=origin;$('to').value=destination;
+for(const field of [$('from'),$('to')]){
+  field.onfocus=()=>field.select();
+  field.oninput=()=>field.setCustomValidity('');
+}
+$('picker').onsubmit=event=>{
+  event.preventDefault();
+  const codes=[];
+  for(const field of [$('from'),$('to')]){
+    const query=field.value.trim().toLowerCase();
+    const matches=Object.keys(airports).filter(c=>c.toLowerCase()===query || airports[c][0].toLowerCase()===query);
+    if(matches.length!==1 || matches[0]===codes[0]){
+      field.setCustomValidity(matches[0]===codes[0] && codes.length && matches.length===1?'Choose two different airports.':'Choose an airport code from the list.');
+      field.reportValidity();return;
+    }
+    codes.push(matches[0]);
+  }
+  const url=new URL(location.href);url.searchParams.set('flight',codes.join('-'));location.assign(url);
+};
+$('source').hidden=!Object.hasOwn(schedules,flight);
 $('source').href='https://www.flightsfrom.com/'+flight;
 $('route').setAttribute('aria-label','Great-circle route from '+origin+' to '+destination);
 $('departure-title').textContent=origin+' · DEPARTURE';$('arrival-title').textContent=destination+' · ARRIVAL';
@@ -32,7 +55,7 @@ const zones=pair.map(a=>a[3]);
 const local=zones.map(timeZone=>new Intl.DateTimeFormat('en-CA',{timeZone,year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',hourCycle:'h23'}));
 function readLocal(value,i){
  const naive=Date.parse(value+'Z'),matches=[];
- for(let off=-12;off<=14;off++){const t=naive-off*3600000;if(!Number.isFinite(t))continue;
+ for(let off=-12;off<=14;off+=.5){const t=naive-off*3600000;if(!Number.isFinite(t))continue;
  const p=Object.fromEntries(local[i].formatToParts(t).map(p=>[p.type,p.value]));
  if(p.year+'-'+p.month+'-'+p.day+'T'+p.hour+':'+p.minute===value)matches.push(t);}
  if(matches.length!==1)throw Error('Choose an unambiguous local time outside the daylight-saving clock change.');
@@ -56,9 +79,9 @@ function itinerary(){try{
  const offset=(Date.parse($('b').value.slice(0,10))-Date.parse($('a').value.slice(0,10)))/86400000;
  $('dep').textContent=fmt[0].format(start);$('arr').textContent=fmt[1].format(end)+(offset?' ('+(offset>0?'+':'')+offset+'d)':'');
  }catch(e){$('error').textContent=e.message;}}
-const endParts=Object.fromEntries(local[1].formatToParts(readLocal($('a').value,0)+schedules[flight]*60000).map(p=>[p.type,p.value]));
+const endParts=Object.fromEntries(local[1].formatToParts(readLocal($('a').value,0)+(schedules[flight] ?? Math.round(dist/850*60+30))*60000).map(p=>[p.type,p.value]));
 $('b').value=endParts.year+'-'+endParts.month+'-'+endParts.day+'T'+endParts.hour+':'+endParts.minute;
-document.querySelector('form').onsubmit=e=>{e.preventDefault();itinerary();};itinerary();
+document.querySelector('details form').onsubmit=e=>{e.preventDefault();itinerary();};itinerary();
 function toggle(){
  if(t>=1){t=0;blend=0;selectProjection(null);}
  playing=!playing;

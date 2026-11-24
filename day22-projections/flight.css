@@ -6,3 +6,5 @@ main,.map{position:fixed;inset:0;overflow:hidden}canvas{position:absolute;width:
 @media(max-width:780px){.deck.control-deck{grid-template-columns:1fr;gap:7px;padding:10px 12px;bottom:12px}.cards,.controls{grid-column:1;grid-row:auto}.cards{gap:6px}.cards b{font-size:11px}.controls{gap:12px}.site-header a{padding:6px 12px}}
 @media(max-height:550px){.deck.control-deck{bottom:5px;max-height:43vh;overflow:auto}}
 #route{touch-action:none;cursor:grab}#route:active{cursor:grabbing}.site-header a.mode-link{padding:8px 15px}
+
+#picker input{width:clamp(76px,17vw,185px);min-width:0;background:#152029;color:#fff;border:1px solid #647079;border-radius:6px;padding:5px;font:inherit} #picker button{font:inherit}
