@@ -1,3 +1,4 @@
+import {nonstop} from './nonstop.js';
 import * as T from '../day17-light-dark/vendor/three.module.js';
 import {sunVector,altitude} from '../day17-light-dark/solar.js';
 const $=id=>document.getElementById(id),rad=Math.PI/180;
@@ -17,7 +18,7 @@ let choices=[],active=-1,editing;
 function closeList(){list.hidden=true;fields.forEach(f=>{f.setAttribute('aria-expanded','false');f.removeAttribute('aria-activedescendant');});}
 function choose(i){editing.value=choices[i][0];editing.setCustomValidity('');closeList();}
 function suggest(field){
- editing=field;choices=matches(field.value).slice(0,6);active=-1;list.replaceChildren();
+ editing=field;choices=matches(field.value).filter(([code])=>field!==fields[1] || !airports[fields[0].value] || nonstop[fields[0].value]?.includes(code)).slice(0,6);active=-1;list.replaceChildren();
  for(const [i,[code,[city,,,,name]]] of choices.entries()){
    const row=document.createElement('div');row.id='airport-option-'+i;row.setAttribute('role','option');
    row.textContent=code+' · '+city+' — '+(name||'Sydney Airport');
@@ -53,20 +54,21 @@ $('picker').onsubmit=e=>{
    if(!selected||codes.includes(selected)){f.setCustomValidity(selected?'Choose different airports.':'Select an airport from the suggestions.');f.reportValidity();suggest(f);return;}
    f.value=selected;codes.push(selected);
  }
+ if(!nonstop[codes[0]]?.includes(codes[1])){fields[1].setCustomValidity('No confirmed nonstop service in this directory. Choose a listed destination.');fields[1].reportValidity();return;}
  closeList();const url=new URL(location.href);url.searchParams.set('flight',codes.join('-'));history.replaceState(null,'',url);
  if(leaveGlobe)leaveGlobe();else openFlight();
 };
 function openFlight(){
  session?.abort();session=new AbortController();const {signal}=session;
 const requested=new URLSearchParams(location.search).get('flight');
-const flight=requested?.split('-').length===2 && requested.split('-').every(c=>Object.hasOwn(airports,c)) && requested.slice(0,3)!==requested.slice(4)?requested:'JFK-HND';
+const flight=nonstop[requested?.split('-')[0]]?.includes(requested?.split('-')[1]) && requested?.split('-').length===2 && requested.split('-').every(c=>Object.hasOwn(airports,c)) && requested.slice(0,3)!==requested.slice(4)?requested:'JFK-HND';
 const waiting=requested!==flight;
 document.body.classList.toggle('awaiting-route',waiting);
 const [origin,destination]=flight.split('-'),pair=[airports[origin],airports[destination]];
 const [A,B]=pair.map(a=>vec(a[1]*rad,a[2]*rad));
 document.documentElement.classList.toggle('intro-earth',waiting);
 if(!waiting){$('from').value=origin;$('to').value=destination;}
-$('source').hidden=!Object.hasOwn(schedules,flight);
+$('source').hidden=false;
 $('source').href='https://www.flightsfrom.com/'+flight;
 $('route').setAttribute('aria-label','Great-circle route from '+origin+' to '+destination);
 $('departure-title').textContent=origin+' · DEPARTURE';$('arrival-title').textContent=destination+' · ARRIVAL';
@@ -152,7 +154,10 @@ async function idleGlobe(){
  texture.colorSpace=T.SRGBColorSpace;
  const scene=new T.Scene(),camera=new T.PerspectiveCamera(35,1,.1,20);
  const globe=new T.Mesh(new T.SphereGeometry(1,72,48),new T.MeshLambertMaterial({map:texture}));
- let cloudLayer, fadeStart=null;
+ let cloudLayer, fadeStart=null, startY, startZ, targetY, targetX;
+ const limit=renderer.capabilities.maxTextureSize;
+ const detail=limit>=16384?'day-globe-hd':limit>=8192?'day-globe':'day-globe-medium';
+ loadTexture('../day17-light-dark/assets/'+detail+'.jpg').then(tex=>{if(signal.aborted)return;tex.colorSpace=T.SRGBColorSpace;tex.anisotropy=renderer.capabilities.getMaxAnisotropy();globe.material.map=tex;globe.material.needsUpdate=true;draw();}).catch(()=>{});
  loadTexture('../day17-light-dark/assets/atmosphere.webp').then(mask=>{
    if(signal.aborted)return;
    const material=new T.ShaderMaterial({transparent:true,depthWrite:false,uniforms:{mask:{value:mask},opacity:{value:1}},
@@ -172,14 +177,21 @@ async function idleGlobe(){
  function turn(now){if(signal.aborted)return;globe.rotation.y+=Math.min(now-previous,100)*.00009;previous=now;
  if(cloudLayer)cloudLayer.rotation.y=globe.rotation.y*.035;
  if(fadeStart!==null){
-   const progress=Math.min(1,(now-fadeStart)/1600);
+   const progress=Math.min(1,(now-fadeStart)/2600);
+   const ease=progress*progress*(3-2*progress);
+   globe.rotation.order='XYZ';globe.rotation.y=startY+targetY*ease;globe.rotation.x=targetX*ease;globe.rotation.z=.12*(1-ease);
+   camera.position.z=startZ*(1-.23*ease);
    if(cloudLayer)cloudLayer.material.uniforms.opacity.value=1-progress*progress*(3-2*progress);
-   if(progress===1){leaveGlobe=null;openFlight();return;}
+   if(progress===1){draw();const overlay=document.createElement('canvas');overlay.width=canvas.width;overlay.height=canvas.height;overlay.getContext('2d').drawImage(canvas,0,0);overlay.id='camera-overlay';overlay.style.cssText='position:absolute;inset:0;pointer-events:none;z-index:1';canvas.parentElement.append(overlay);leaveGlobe=null;openFlight();return;}
  }
  draw();requestAnimationFrame(turn);}
  leaveGlobe=()=>{
-   if(reduceMotion || !cloudLayer){leaveGlobe=null;openFlight();return;}
-   if(fadeStart===null)fadeStart=performance.now();
+   if(reduceMotion){leaveGlobe=null;openFlight();return;}
+   const midpoint=fields.map(f=>airports[f.value]).map(a=>vec(a[1]*rad,a[2]*rad)).reduce((a,b)=>a.add(b)).normalize();
+   startY=globe.rotation.y; startZ=camera.position.z;
+   const heading=-Math.PI/2-Math.atan2(midpoint.z,midpoint.x);
+   targetY=Math.atan2(Math.sin(heading-startY),Math.cos(heading-startY));
+   targetX=Math.asin(midpoint.y);fadeStart=performance.now();
  };
  if(!reduceMotion)requestAnimationFrame(turn);
 }
@@ -212,7 +224,7 @@ async function run(){
  const scene=new T.Scene(),mesh=new T.Mesh(geom,material);mesh.frustumCulled=false;scene.add(mesh);const camera=new T.Camera();
  renderer.setClearColor(0x05090d);const canvas=$('route'),ctx=canvas.getContext('2d');$('status').hidden=true;
  const labelFont='600 12px '+getComputedStyle(document.body).fontFamily;
- let lastMapTime, textureVersion=0, lastTexture=-1; let points,lastBlend=-1;const observer=new ResizeObserver(()=>dirty=true);observer.observe(document.querySelector('.deck'));signal.addEventListener('abort',()=>{observer.disconnect();geom.dispose();material.dispose();},{once:true});
+ let lastMapTime, textureVersion=0, lastTexture=-1; let points,lastBlend=-1;const observer=new ResizeObserver(()=>{if(!playing)dirty=true;});observer.observe(document.querySelector('.deck'));signal.addEventListener('abort',()=>{observer.disconnect();geom.dispose();material.dispose();},{once:true});
  function render(now){
  if(signal.aborted)return;
  if(playing){t=Math.min(1,t+(now-last)*3600*Number($('speed').value)/(arrival-departure));if(t===1)playing=false;}last=now;
@@ -247,7 +259,7 @@ async function run(){
  const mapChanged=lastBlend!==m || lastMapTime!==departure+t*(arrival-departure) || lastTexture!==textureVersion;
  if(lastBlend!==m){points=samples.map(project);lastBlend=m;}
  const time=new Date(departure+t*(arrival-departure)),v=position(t);
- uniforms.sun.value.fromArray(sunVector(time));if(mapChanged){renderer.render(scene,camera);$('earth-preview').hidden=true;lastMapTime=departure+t*(arrival-departure);lastTexture=textureVersion;}
+ uniforms.sun.value.fromArray(sunVector(time));if(mapChanged){renderer.render(scene,camera);$('earth-preview').hidden=true;const overlay=$('camera-overlay');if(overlay&&!overlay.dataset.fading){overlay.dataset.fading='1';overlay.animate([{opacity:1},{opacity:0}],{duration:750,fill:'forwards'}).onfinish=()=>overlay.remove();}lastMapTime=departure+t*(arrival-departure);lastTexture=textureVersion;}
  ctx.clearRect(0,0,w,h);ctx.beginPath();let pen=false;points.forEach(([x,y],i)=>{if(m===0&&route[i].dot(look)<0){pen=false;return;}if(pen)ctx.lineTo(x,h-y);else ctx.moveTo(x,h-y);pen=true;}); ctx.save();ctx.globalAlpha=.75;ctx.strokeStyle='#edaa49';ctx.shadowColor='#ffad4b';ctx.shadowBlur=12;ctx.lineWidth=2.8;ctx.stroke();ctx.shadowBlur=0;ctx.strokeStyle='#ffe5a8';ctx.lineWidth=1;ctx.stroke();ctx.restore();
  // Each pulse follows equal-distance samples from departure to arrival.
  if(!reduceMotion){
