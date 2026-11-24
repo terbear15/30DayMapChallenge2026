@@ -13,3 +13,8 @@ main,.map{position:fixed;inset:0;overflow:hidden}canvas{position:absolute;width:
 #picker input::placeholder{color:var(--muted)}
 #picker button{font:inherit;font-size:12px;color:var(--gold);padding:6px;white-space:nowrap}
 .awaiting-route .deck,.awaiting-route #route{display:none}
+
+#picker{position:relative}
+#suggestions{position:absolute;top:calc(100% + 5px);left:0;right:0;padding:5px;border:1px solid var(--line);border-radius:12px;background:#111922f5;z-index:5;max-height:34vh;overflow:auto}
+#suggestions [role=option]{padding:7px;color:#d9e0e5;font-size:12px;cursor:pointer}
+#suggestions [aria-selected=true],#suggestions [role=option]:hover{background:#303a44;border-radius:6px}
