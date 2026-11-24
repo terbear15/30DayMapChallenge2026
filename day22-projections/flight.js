@@ -124,7 +124,7 @@ async function idleGlobe(){
  function draw(){renderer.render(scene,camera);}
  function resize(){const w=canvas.clientWidth,h=canvas.clientHeight;renderer.setSize(w,h,false);
  camera.aspect=w/h;camera.position.z=4.3/Math.min(1,camera.aspect);camera.updateProjectionMatrix();draw();}
- resize();new ResizeObserver(resize).observe(canvas);$('status').hidden=true;
+ resize();earth-preview.hidden=true;new ResizeObserver(resize).observe(canvas);$('status').hidden=true;
  let previous=performance.now();
  function turn(now){globe.rotation.y+=Math.min(now-previous,100)*.00009;previous=now;draw();requestAnimationFrame(turn);}
  if(!reduceMotion)requestAnimationFrame(turn);
@@ -190,7 +190,7 @@ async function run(){
  const mapChanged=lastBlend!==m || lastMapTime!==departure+t*(arrival-departure) || lastTexture!==textureVersion;
  if(lastBlend!==m){points=samples.map(project);lastBlend=m;}
  const time=new Date(departure+t*(arrival-departure)),v=position(t);
- uniforms.sun.value.fromArray(sunVector(time));if(mapChanged){renderer.render(scene,camera);lastMapTime=departure+t*(arrival-departure);lastTexture=textureVersion;}
+ uniforms.sun.value.fromArray(sunVector(time));if(mapChanged){renderer.render(scene,camera);earth-preview.hidden=true;lastMapTime=departure+t*(arrival-departure);lastTexture=textureVersion;}
  ctx.clearRect(0,0,w,h);ctx.beginPath();let pen=false;points.forEach(([x,y],i)=>{if(m===0&&route[i].dot(look)<0){pen=false;return;}if(pen)ctx.lineTo(x,h-y);else ctx.moveTo(x,h-y);pen=true;}); ctx.save();ctx.globalAlpha=.75;ctx.strokeStyle='#edaa49';ctx.shadowColor='#ffad4b';ctx.shadowBlur=12;ctx.lineWidth=2.8;ctx.stroke();ctx.shadowBlur=0;ctx.strokeStyle='#ffe5a8';ctx.lineWidth=1;ctx.stroke();ctx.restore();
  // Each pulse follows equal-distance samples from departure to arrival.
  if(!reduceMotion){
