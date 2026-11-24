@@ -41,7 +41,7 @@ for(const field of fields){
    }
  };
 }
-let renderer,session;
+let renderer,session,leaveGlobe;
 function surface(){return renderer??=new T.WebGLRenderer({canvas:$('surface'),antialias:true});}
 const textures=new Map();
 function loadTexture(url){if(!textures.has(url))textures.set(url,new T.TextureLoader().loadAsync(url).catch(e=>{textures.delete(url);throw e;}));return textures.get(url);}
@@ -54,7 +54,7 @@ $('picker').onsubmit=e=>{
    f.value=selected;codes.push(selected);
  }
  closeList();const url=new URL(location.href);url.searchParams.set('flight',codes.join('-'));history.replaceState(null,'',url);
- openFlight();
+ if(leaveGlobe)leaveGlobe();else openFlight();
 };
 function openFlight(){
  session?.abort();session=new AbortController();const {signal}=session;
@@ -152,12 +152,13 @@ async function idleGlobe(){
  texture.colorSpace=T.SRGBColorSpace;
  const scene=new T.Scene(),camera=new T.PerspectiveCamera(35,1,.1,20);
  const globe=new T.Mesh(new T.SphereGeometry(1,72,48),new T.MeshLambertMaterial({map:texture}));
+ let cloudLayer, fadeStart=null;
  loadTexture('../day17-light-dark/assets/atmosphere.webp').then(mask=>{
    if(signal.aborted)return;
-   const material=new T.ShaderMaterial({transparent:true,depthWrite:false,uniforms:{mask:{value:mask}},
+   const material=new T.ShaderMaterial({transparent:true,depthWrite:false,uniforms:{mask:{value:mask},opacity:{value:1}},
      vertexShader:'varying vec2 u; varying vec3 n; void main(){u=uv;n=normalMatrix*normal;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}',
-     fragmentShader:'varying vec2 u;varying vec3 n;uniform sampler2D mask;void main(){float light=max(0.,dot(normalize(n),normalize(vec3(-3.,2.,4.))));gl_FragColor=vec4(vec3(.83,.87,.91)*(.48+.52*light),.32*smoothstep(.07,.86,texture2D(mask,u).r));}'});
-   const clouds=new T.Mesh(globe.geometry,material);clouds.scale.setScalar(1.004);globe.add(clouds);draw();
+     fragmentShader:'varying vec2 u;varying vec3 n;uniform sampler2D mask;uniform float opacity;      void main(){        float density=texture2D(mask,u).r;        float sun=dot(normalize(n),normalize(vec3(-3.,2.,4.)));        float relief=density-texture2D(mask,u+vec2(-.001,.001)).r;        vec3 color=mix(vec3(.44,.52,.63),vec3(1.,.97,.91),smoothstep(-.2,.78,sun));        gl_FragColor=vec4(color*(1.+.23*relief),opacity*.62*smoothstep(.055,.91,density));      }'});
+   const clouds=new T.Mesh(globe.geometry,material);clouds.scale.setScalar(1.004);globe.add(clouds);cloudLayer=clouds;draw();
    signal.addEventListener('abort',()=>material.dispose(),{once:true});
  }).catch(()=>{});
  scene.add(globe,new T.AmbientLight(0xffffff,.65));
@@ -168,7 +169,18 @@ async function idleGlobe(){
  camera.aspect=w/h;camera.position.z=4.3/Math.min(1,camera.aspect);camera.updateProjectionMatrix();draw();}
  resize();$('earth-preview').hidden=true;const observer=new ResizeObserver(resize);observer.observe(canvas);signal.addEventListener('abort',()=>{observer.disconnect();globe.geometry.dispose();globe.material.dispose();},{once:true});$('status').hidden=true;
  let previous=performance.now();
- function turn(now){if(signal.aborted)return;globe.rotation.y+=Math.min(now-previous,100)*.00009;previous=now;draw();requestAnimationFrame(turn);}
+ function turn(now){if(signal.aborted)return;globe.rotation.y+=Math.min(now-previous,100)*.00009;previous=now;
+ if(cloudLayer)cloudLayer.rotation.y=globe.rotation.y*.035;
+ if(fadeStart!==null){
+   const progress=Math.min(1,(now-fadeStart)/1600);
+   if(cloudLayer)cloudLayer.material.uniforms.opacity.value=1-progress*progress*(3-2*progress);
+   if(progress===1){leaveGlobe=null;openFlight();return;}
+ }
+ draw();requestAnimationFrame(turn);}
+ leaveGlobe=()=>{
+   if(reduceMotion || !cloudLayer){leaveGlobe=null;openFlight();return;}
+   if(fadeStart===null)fadeStart=performance.now();
+ };
  if(!reduceMotion)requestAnimationFrame(turn);
 }
 async function run(){
