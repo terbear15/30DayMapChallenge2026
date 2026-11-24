@@ -7,4 +7,9 @@ main,.map{position:fixed;inset:0;overflow:hidden}canvas{position:absolute;width:
 @media(max-height:550px){.deck.control-deck{bottom:5px;max-height:43vh;overflow:auto}}
 #route{touch-action:none;cursor:grab}#route:active{cursor:grabbing}.site-header a.mode-link{padding:8px 15px}
 
-#picker input{width:clamp(76px,17vw,185px);min-width:0;background:#152029;color:#fff;border:1px solid #647079;border-radius:6px;padding:5px;font:inherit} #picker button{font:inherit}
+
+#picker{pointer-events:auto;display:flex;align-items:center;gap:4px;padding:5px;margin-top:8px;border-radius:14px;width:fit-content;max-width:100%}
+#picker input{min-width:0;width:clamp(75px,15vw,165px);font:inherit;font-size:12px;color:var(--ink);background:transparent;border:0;border-right:1px solid var(--line);padding:7px}
+#picker input::placeholder{color:var(--muted)}
+#picker button{font:inherit;font-size:12px;color:var(--gold);padding:6px;white-space:nowrap}
+.awaiting-route .deck,.awaiting-route #route{display:none}

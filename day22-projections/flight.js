@@ -7,12 +7,14 @@ import {airports as legacy,schedules} from './routes.js';
 const airports={...rankedAirports,SYD:legacy.SYD};
 const requested=new URLSearchParams(location.search).get('flight');
 const flight=requested?.split('-').length===2 && requested.split('-').every(c=>Object.hasOwn(airports,c)) && requested.slice(0,3)!==requested.slice(4)?requested:'JFK-HND';
+const waiting=requested!==flight;
+document.body.classList.toggle('awaiting-route',waiting);
 const [origin,destination]=flight.split('-'),pair=[airports[origin],airports[destination]];
 const [A,B]=pair.map(a=>vec(a[1]*rad,a[2]*rad));
 for(const [code,[city,,,,name]] of Object.entries(airports)){
   $('airport-list').append(new Option(city+' · '+(name||'Sydney Airport'),code));
 }
-$('from').value=origin;$('to').value=destination;
+if(!waiting){$('from').value=origin;$('to').value=destination;}
 for(const field of [$('from'),$('to')]){
   field.onfocus=()=>field.select();
   field.oninput=()=>field.setCustomValidity('');
@@ -109,15 +111,34 @@ let samples=route.map(v=>raw(v,...coords(v)));
 let frames=[],w,h,m;
 function project(all){const i=Math.min(1,Math.floor(m)),k=m-i;
  return [0,1].map(d=>(all[i][d]*frames[i].scale+frames[i].shift[d])*(1-k)+(all[i+1][d]*frames[i+1].scale+frames[i+1].shift[d])*k);}
+async function idleGlobe(){
+ const canvas=$('surface'), renderer=new T.WebGLRenderer({canvas,antialias:true});
+ renderer.setPixelRatio(Math.min(devicePixelRatio,1.5));
+ const texture=await new T.TextureLoader().loadAsync('../day17-light-dark/assets/day-preview.jpg');
+ texture.colorSpace=T.SRGBColorSpace;
+ const scene=new T.Scene(),camera=new T.PerspectiveCamera(35,1,.1,20);
+ const globe=new T.Mesh(new T.SphereGeometry(1,72,48),new T.MeshLambertMaterial({map:texture}));
+ scene.add(globe,new T.AmbientLight(0xffffff,.65));
+ const sun=new T.DirectionalLight(0xfff5de,2);sun.position.set(-3,2,4);scene.add(sun);
+ renderer.setClearColor(0x05090d);globe.rotation.z=.12;
+ function draw(){renderer.render(scene,camera);}
+ function resize(){const w=canvas.clientWidth,h=canvas.clientHeight;renderer.setSize(w,h,false);
+ camera.aspect=w/h;camera.position.z=4.3/Math.min(1,camera.aspect);camera.updateProjectionMatrix();draw();}
+ resize();new ResizeObserver(resize).observe(canvas);$('status').hidden=true;
+ let previous=performance.now();
+ function turn(now){globe.rotation.y+=Math.min(now-previous,100)*.00009;previous=now;draw();requestAnimationFrame(turn);}
+ if(!reduceMotion)requestAnimationFrame(turn);
+}
 async function run(){
  const renderer=new T.WebGLRenderer({canvas:$('surface'),antialias:true});renderer.setPixelRatio(Math.min(devicePixelRatio,1.5));
- const loader=new T.TextureLoader(),[day,night]=await Promise.all(['day-globe-medium','night-globe'].map(n=>loader.loadAsync('../day17-light-dark/assets/'+n+'.jpg')));
+ const loader=new T.TextureLoader(),[day,night]=await Promise.all(['day-preview','night-preview'].map(n=>loader.loadAsync('../day17-light-dark/assets/'+n+'.jpg')));
  for(const tex of [day,night]){tex.wrapS=T.RepeatWrapping;tex.needsUpdate=true;}
  const max=renderer.capabilities.maxTextureSize;
  const large=matchMedia('(pointer:fine)').matches && (navigator.deviceMemory||8)>=8;
  async function refine(){
-   if(max<8192 || !large)return;
-   const files=[['night','flight-night-hd'],['day','day-globe']];
+   
+   const files=[['day','day-globe-medium'],['night','night-globe']];
+   if(large && max>=8192)files.push(['night','flight-night-hd'],['day','day-globe']);
    for(const [key,name] of files){
      const tex=await loader.loadAsync('../day17-light-dark/assets/'+name+'.jpg');
      tex.wrapS=T.RepeatWrapping;tex.generateMipmaps=false;tex.minFilter=T.LinearFilter;
@@ -208,4 +229,4 @@ ctx.restore();
  $('pct').textContent=Math.round(t*100)+'%';$('progress').value=t;requestAnimationFrame(render);}
  requestAnimationFrame(render);refine().catch(()=>{});
 }
-run().catch(e=>{$('status').textContent='Map unavailable. Reload to retry. '+e.message;});
+(waiting?idleGlobe():run()).catch(e=>{$('status').textContent='Map unavailable. Reload to retry. '+e.message;});
