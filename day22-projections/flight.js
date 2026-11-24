@@ -138,10 +138,16 @@ $('route').onpointercancel=()=>gesture=null;
 $('progress').oninput=e=>{playing=false;t=+e.target.value;};
 $('projection').oninput=()=>{automatic=false;transition=null;blend=+dial.value;home();buttons.forEach((b,i)=>b.setAttribute('aria-pressed',String(i===blend)));};
 buttons.forEach((b,i)=>b.onclick=()=>selectProjection(i===3?null:i));
+// Rotate the Mercator cylinder for polar crossings so the route follows its equator.
+const polar=route.some(v=>Math.abs(v.y)>Math.sin(70*rad));
+const along=polar?B.clone().sub(A).normalize():east;
+const pole=polar?along.clone().cross(center).normalize():new T.Vector3(0,1,0);
+const prime=polar?center:vec(meridian,0);
 function raw(v,longitude,latitude){
  const z=v.dot(center),x=v.dot(east),y=v.dot(north);
- return [[v.dot(right),v.dot(up)],[x/Math.max(.18,z),y/Math.max(.18,z)],[wrap(longitude-meridian),Math.asinh(Math.tan(Math.max(-85*rad,Math.min(85*rad,latitude))))]];
+ return [[v.dot(right),v.dot(up)],[x/Math.max(.18,z),y/Math.max(.18,z)],[Math.atan2(v.dot(along),v.dot(prime)),Math.atanh(Math.max(-.999999,Math.min(.999999,v.dot(pole))))]];
 }
+if(polar)buttons[2].textContent='Oblique Mercator';
 let samples=route.map(v=>raw(v,...coords(v)));
 let frames=[],w,h,m;
 function project(all){const i=Math.min(1,Math.floor(m)),k=m-i;
@@ -215,12 +221,12 @@ async function run(){
  }
  const geom=new T.PlaneGeometry(1,1,160,80),uv=geom.attributes.uv,xyz=geom.attributes.position;
  const vectors=[],vertices=[],depth=new Float32Array(uv.count);
- for(let i=0;i<uv.count;i++){const offset=(uv.getX(i)-.5)*2*Math.PI,l=offset+meridian,p=(uv.getY(i)-.5)*Math.PI,v=vec(l,p);
+ for(let i=0;i<uv.count;i++){const offset=(uv.getX(i)-.5)*2*Math.PI,l=offset+meridian,p=(uv.getY(i)-.5)*Math.PI,v=prime.clone().multiplyScalar(Math.cos(p)*Math.cos(offset)).addScaledVector(along,Math.cos(p)*Math.sin(offset)).addScaledVector(pole,Math.sin(p));
  const maps=raw(v,l,p);maps[2][0]=offset;vectors.push(v);vertices.push(maps);depth[i]=v.dot(center);}
  geom.setAttribute('front',new T.BufferAttribute(depth,1));
  const flatA=new T.BufferAttribute(new Float32Array(uv.count*2),2),flatB=flatA.clone();geom.setAttribute('flatA',flatA);geom.setAttribute('flatB',flatB);
- const uniforms={central:{value:meridian},blend:{value:0},day:{value:day},night:{value:night},sun:{value:new T.Vector3()},clip:{value:0}};
- const material=new T.ShaderMaterial({side:T.DoubleSide,uniforms,vertexShader:'attribute vec2 flatA,flatB;uniform float blend;attribute float front; varying float f; varying vec2 u; void main(){u=uv;f=front;vec2 p=mix(position.xy,flatA,min(blend,1.));p=mix(p,flatB,max(0.,blend-1.));gl_Position=vec4(p,position.z,1.);}',fragmentShader:`varying float f;varying vec2 u;uniform float central;uniform float clip;uniform vec3 sun;uniform sampler2D day,night;void main(){if(f<clip)discard;float l=(u.x-.5)*6.2831853+central,p=(u.y-.5)*3.14159265;vec3 n=vec3(cos(p)*cos(l),sin(p),cos(p)*sin(l));float light=dot(n,sun);vec2 tex=vec2(u.x+central/6.2831853,u.y);gl_FragColor=vec4(mix(texture2D(night,tex).rgb,texture2D(day,tex).rgb*(.70+.33*sqrt(max(light,0.))),smoothstep(-.14,.12,light)),1.);}`});
+ const uniforms={prime:{value:prime},along:{value:along},pole:{value:pole},central:{value:meridian},blend:{value:0},day:{value:day},night:{value:night},sun:{value:new T.Vector3()},clip:{value:0}};
+ const material=new T.ShaderMaterial({side:T.DoubleSide,uniforms,vertexShader:'attribute vec2 flatA,flatB;uniform float blend;attribute float front; varying float f; varying vec2 u; void main(){u=uv;f=front;vec2 p=mix(position.xy,flatA,min(blend,1.));p=mix(p,flatB,max(0.,blend-1.));gl_Position=vec4(p,position.z,1.);}',fragmentShader:`varying float f;varying vec2 u;uniform vec3 prime,along,pole;uniform float central;uniform float clip;uniform vec3 sun;uniform sampler2D day,night;void main(){if(f<clip)discard;float l=(u.x-.5)*6.2831853,p=(u.y-.5)*3.14159265;vec3 n=normalize(prime*cos(p)*cos(l)+along*cos(p)*sin(l)+pole*sin(p));float light=dot(n,sun);vec2 tex=vec2(.5+atan(n.z,n.x)/6.2831853,.5+asin(clamp(n.y,-1.,1.))/3.14159265);gl_FragColor=vec4(mix(texture2D(night,tex).rgb,texture2D(day,tex).rgb*(.70+.33*sqrt(max(light,0.))),smoothstep(-.14,.12,light)),1.);}`});
  const scene=new T.Scene(),mesh=new T.Mesh(geom,material);mesh.frustumCulled=false;scene.add(mesh);const camera=new T.Camera();
  renderer.setClearColor(0x05090d);const canvas=$('route'),ctx=canvas.getContext('2d');$('status').hidden=true;
  const labelFont='600 12px '+getComputedStyle(document.body).fontFamily;
