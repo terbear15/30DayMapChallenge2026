@@ -1,6 +1,6 @@
 import {nonstop} from './nonstop.js';
-import * as T from '../day17-light-dark/vendor/three.module.js';
-import {sunVector,altitude} from '../day17-light-dark/solar.js';
+import * as T from '../earth/vendor/three.module.js';
+import {sunVector,altitude} from '../earth/solar.js';
 const $=id=>document.getElementById(id),rad=Math.PI/180;
 const vec=(lon,lat)=>new T.Vector3(Math.cos(lat)*Math.cos(lon),Math.sin(lat),Math.cos(lat)*Math.sin(lon));
 import {rankedAirports} from './airport-catalog.js';
@@ -155,7 +155,7 @@ function project(all){const i=Math.min(1,Math.floor(m)),k=m-i;
 async function idleGlobe(){
  const canvas=$('surface'), renderer=surface();
  renderer.setPixelRatio(Math.min(devicePixelRatio,1.5));
- const texture=await loadTexture('../day17-light-dark/assets/day-preview.jpg');
+ const texture=await loadTexture('../earth/assets/day-preview.jpg');
  if(signal.aborted)return;
  texture.colorSpace=T.SRGBColorSpace;
  const scene=new T.Scene(),camera=new T.PerspectiveCamera(35,1,.1,20);
@@ -163,8 +163,8 @@ async function idleGlobe(){
  let cloudLayer, fadeStart=null, startY, startZ, targetY, targetX;
  const limit=renderer.capabilities.maxTextureSize;
  const detail=limit>=16384?'day-globe-hd':limit>=8192?'day-globe':'day-globe-medium';
- loadTexture('../day17-light-dark/assets/'+detail+'.jpg').then(tex=>{if(signal.aborted)return;tex.colorSpace=T.SRGBColorSpace;tex.anisotropy=renderer.capabilities.getMaxAnisotropy();globe.material.map=tex;globe.material.needsUpdate=true;draw();}).catch(()=>{});
- loadTexture('../day17-light-dark/assets/atmosphere.webp').then(mask=>{
+ loadTexture('../earth/assets/'+detail+'.jpg').then(tex=>{if(signal.aborted)return;tex.colorSpace=T.SRGBColorSpace;tex.anisotropy=renderer.capabilities.getMaxAnisotropy();globe.material.map=tex;globe.material.needsUpdate=true;draw();}).catch(()=>{});
+ loadTexture('../earth/assets/atmosphere.webp').then(mask=>{
    if(signal.aborted)return;
    const material=new T.ShaderMaterial({transparent:true,depthWrite:false,uniforms:{mask:{value:mask},opacity:{value:1}},
      vertexShader:'varying vec2 u; varying vec3 n; void main(){u=uv;n=normalMatrix*normal;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}',
@@ -203,7 +203,7 @@ async function idleGlobe(){
 }
 async function run(){
  const renderer=surface();renderer.setPixelRatio(Math.min(devicePixelRatio,1.5));
- const loader=new T.TextureLoader(),[day,night]=await Promise.all(['day-preview','night-preview'].map(n=>loadTexture('../day17-light-dark/assets/'+n+'.jpg')));
+ const loader=new T.TextureLoader(),[day,night]=await Promise.all(['day-preview','night-preview'].map(n=>loadTexture('../earth/assets/'+n+'.jpg')));
  if(signal.aborted)return;
  for(const tex of [day,night]){tex.wrapS=T.RepeatWrapping;tex.needsUpdate=true;}
  const max=renderer.capabilities.maxTextureSize;
@@ -213,7 +213,7 @@ async function run(){
    const files=[['day','day-globe-medium'],['night','night-globe']];
    if(large && max>=8192)files.push(['night','flight-night-hd'],['day','day-globe']);
    for(const [key,name] of files){
-     const tex=await loadTexture('../day17-light-dark/assets/'+name+'.jpg');
+     const tex=await loadTexture('../earth/assets/'+name+'.jpg');
      if(signal.aborted)return;
      tex.wrapS=T.RepeatWrapping;tex.generateMipmaps=false;tex.minFilter=T.LinearFilter;
      uniforms[key].value=tex;textureVersion++;
