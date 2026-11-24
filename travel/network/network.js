@@ -40,7 +40,7 @@ function update(){
  const stops=codes.filter(c=>!journey.includes(c)&&links(prev,c)&&links(c,end));
  const add=button('+ Add stop',()=>{journey.splice(-1,0,stops[0]);update();});add.disabled=!stops.length;
  if(!stops.length)add.title='No additional connecting airport in this directory';
- draw();
+ compare();draw();
 }
 const rad=Math.PI/180;
 function vector(code){const [,x,y]=airports[code],p=y*rad,l=x*rad;return [Math.cos(p)*Math.cos(l),Math.cos(p)*Math.sin(l),Math.sin(p)];}
